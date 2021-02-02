@@ -102,7 +102,7 @@ This module fragment `#counts` may be imported from within that particular JS fi
 
 Some further rules limiting how module fragments can be used in the Web:
 - No two module fragments may have the same specifier
-- Inline modules may not use module fragments (since there would be no clear URL for them)
+- Modules which are inline `<script type=module> /* ... */ </script>` tags in HTML may not use module fragments (since there would be no clear URL for them)
 
 ### `import.meta.url`
 
