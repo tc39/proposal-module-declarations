@@ -143,7 +143,9 @@ JS module fragments, like all other modules, are kept track of in the [module ma
 
 ### Relationship to privacy/URL semantics concerns
 
-Brave has [expressed concerns](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/) about the possibility that bundling could be used to let servers remap URLs more easily, which cuts against privacy techniques for blocking tracking, etc. This proposal has significantly less expressivity than Web Bundles, making these issues not as big of a risk: JS module bundles are restricted to just same-origin JS, so they are analogous in scope to what is currently done with popular bundlers like webpack and rollup, not adding more power. Although it is possible to rotate/scramble fragment identifiers, these will not contain 
+Brave has [expressed concerns](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/) about the possibility that bundling could be used to let servers remap URLs more easily, which cuts against privacy techniques for blocking tracking, etc. This proposal has significantly less expressivity than Web Bundles, making these issues not as big of a risk:
+
+JS module bundles are restricted to just same-origin JS, so they are analogous in scope to what is currently done with popular bundlers like webpack and rollup, not adding more power. Although it is possible to rotate/scramble fragment identifiers, it is reasonable to treat the whole outer module containing several module fragments as a unit, with content blockers targeting either all or none of it.
 
 Martin Thompson of Mozilla has articulated a preference for bundling schemes to be based on URLs which accurately identify the identity of the resource. By identifying module fragments with URLs which include both where they were fetched from and the name of the component, the identity is clearly represented. (TODO: confirm this with MT)
 
