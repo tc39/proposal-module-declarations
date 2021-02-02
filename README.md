@@ -64,7 +64,7 @@ ModuleFragment : module [no LineTerminator here] ModuleSpecifier { Module }
 
 Module fragments may not be nested inside of other module fragments; they can only be defined at the top level.
 
-This grammar does not *syntactically* conflict with [JS module blocks](https://github.com/tc39/proposal-js-module-blocks), which also use the `module` contextual keyword, but without a name, and not in the same context. Any confused attempts to use one in the context where the other is appropriate would quickly run into a syntax error, as JS module blocks are permitted in normal JS modules and scripts, whereas bundled modules are only permitted at the top level of a module bundle.
+This grammar does not *syntactically* conflict with [JS module blocks](https://github.com/tc39/proposal-js-module-blocks), which also use the `module` contextual keyword, but without a module specifier.
 
 Host environments may limit the kinds of module specifiers permitted, or where module fragments are used at all. See [HTML integration](#html-integration) below for an example.
 
