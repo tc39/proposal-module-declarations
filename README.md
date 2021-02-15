@@ -1,6 +1,7 @@
 # JavaScript Module Fragments
 
-Champion: Daniel Ehrenberg
+Champion: Daniel Ehrenberg (Igalia, in partnership with [eyeo](https://eyeo.com/))
+
 Stage 0
 
 JavaScript module fragments are a syntax for named, inline JS modules, which can be used for bundling multiple modules into a single JavaScript file.
