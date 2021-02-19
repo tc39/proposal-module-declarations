@@ -6,7 +6,17 @@ Stage 0
 
 JavaScript module fragments are a syntax for named, inline JS modules, which can be used for bundling multiple modules into a single JavaScript file.
 
-A quick example:
+## Motivation
+
+JavaScript developers often write code in many small modules, and uptake of ECMAScript Modules (ESM, introduced in ES6/ES2015) is high as a source format. However, many small files--whether on the Web, servers, or other environments--has a high cost in terms of loading performance. For this reason, developers use tools called "bundlers" to emulate several ES modules in one (or a few) scripts or modules. Some examples are [webpack](https://webpack.js.org/), [rollup](https://rollupjs.org/guide/en/), [Parcel](https://parceljs.org/) and [esbuild](https://esbuild.github.io/).
+
+The need for bundlers to entirely virtualize ES module semantics adds a lot of complexity to their implementation, and this cost increases over time, with new module features such as [top-level await](https://github.com/tc39/proposal-top-level-await/). It also has a cost in terms of runtime performance, as engines need to work through the virtualized code, and they cannot see the previous module structure. For example, modules would be a convenient point to divide up code for parallel bytecode generation, but this structure is not easily visible to JS engines today, if bundlers make everything one big script or module.
+
+Some more general-purpose bundling format such as [resource bundles](https://github.com/littledan/resource-bundles) has a significant benefit over a JS-only bundling system because developers need to combine more things than just JavaScript in practice. An implementation of fetch-level resources is expected to have some degree of overhead, which may be suitable for images, WebAssembly and CSS. However, JavaScript tends to have much higher "blowup" in the number of modules than other resources, so a special-purpose JS-only format could tie in more cheaply at the module level, rather than the network level.
+
+This proposal adds a syntax to JavaScript to allow for several JavaScript modules in one file. This format can be used as output by bundlers, with low overhead on execution, so that bundlers don't have to emulate as much, and JS engines can see what's going on. It's also convenient to be typed directly by JavaScript developers, and it should be low overhead to fit into existing workflows.
+
+## Example
 
 ```js
 // filename: app.js
