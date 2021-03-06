@@ -83,11 +83,11 @@ Host environments may limit the kinds of module specifiers permitted, or where m
 
 Each module fragment contained in a JS module is "top level":
 
-- Syntactically, they can only be declared as a top-level statement of a module, not within another construct.
-- They are available outside of the module they are contained in (by providing a module specifier with the appropriate context).
-- Each bundled module contained in the module bundle has its own top-level lexical scope. There is no shared scope.
+- Syntactically, module fragments can only be declared as a top-level statement of a module, not within another construct.
+- Module fragments are available outside of the module they are contained in (by using the full URL preceding the `#`). (See also [#4](https://github.com/littledan/proposal-module-fragments/issues/4) for the possibility of non-exported module fragments)
+- Each module fragment has its own top-level lexical scope. There is no shared scope.
 
-Like other modules, the host is required to return back the same value of that module when it is imported, or an error.
+Within a particular Realm (e.g., HTML document), if a module fragment is imported multiple times, the same module "instance" is returned, just like with modules declared in separate JS files. In other words, module fragments are singletons.
 
 ## HTML integration
 
@@ -152,7 +152,9 @@ The document `index.html` will contain `d` when run.
 
 JS module fragments, like all other modules, are kept track of in the [module map](https://html.spec.whatwg.org/#module-map). Whenever a JavaScript module which contains module fragments is imported (whether or not the fragment was imported), there is a module map entry made for each module fragment. The module fragments (as well as the top-level module) only have their dependencies loaded if they are *directly* imported; other entries may exist as a side effect, since they were found in the same file, but it's not time to fetch and parse their dependencies until that particular module is imported. This means that modules in the module map will need an extra bit to track whether they are "loaded" in this sense.
 
-### Relationship to privacy/URL semantics concerns
+## FAQ
+
+### Does this proposal meet privacy concerns about bundling?
 
 Brave has [expressed concerns](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/) about the possibility that bundling could be used to let servers remap URLs more easily, which cuts against privacy techniques for blocking tracking, etc. This proposal has significantly less expressivity than Web Bundles, making these issues not as big of a risk:
 
@@ -160,7 +162,7 @@ JS module bundles are restricted to just same-origin JS, so they are analogous i
 
 Martin Thompson of Mozilla has articulated a preference for bundling schemes to be based on URLs which accurately identify the identity of the resource. By identifying module fragments with URLs which include both where they were fetched from and the name of the component, the identity is clearly represented. (TODO: confirm this with MT)
 
-## Relationship to resource bundles
+### Why have module fragments, rather than just focusing on general-purpose resource bundles?
 
 JS module fragments provide a very limited subset of the functionality of [resource bundle loading](https://github.com/littledan/resource-bundles/blob/main/subresource-loading.md) behavior.
 
@@ -177,7 +179,7 @@ As a point-by-point comparison to how resource bundles and module fragments comp
 
 It's my (Dan Ehrenberg's) hypothesis at this point that, for best performance, JS module fragments should be *nested inside* resource bundles. This way, the expressiveness of resource bundles can be combined with the low per-asset overhead of JS module fragments: most of the "blow-up" in terms of the number of assets today is JS modules, so it makes sense to have a specialized solution for that case, which can be contained inside the JS engine. The plan from here will be to develop prototype implementations (both in browsers and build tools) to validate this hypothesis before shipping.
 
-## Relationship to JS module blocks
+### Why have this proposal and module blocks as two separate things, rather than one common language feature?
 
 [JS module blocks](https://github.com/tc39/proposal-js-module-blocks) are a separate concept for a module syntax which acts like a specifier: it can be imported with `import()` or `new Worker()`, but not with a static import statement, as it is not in the module map. Instead, it is a *key* in the module map. JS module blocks may be imported in other Realms.
 
@@ -192,7 +194,7 @@ This flexibility helps module blocks be deployed more flexibly, allowing, e.g., 
 
 Module fragments have a module specifier expressed as a string, which they can be imported from. Module blocks don't have such an identifying string. This makes module fragments more useful for bundling than module blocks. See more context in [this FAQ](https://github.com/tc39/proposal-js-module-blocks#can-module-blocks-help-with-bundling).
 
-## Relationship to import maps
+### Does this proposal work with import maps?
 
 [Import maps](https://github.com/WICG/import-maps) can be used in conjunction with module fragments, in that the import map can redirect bare specifiers to be found in module fragments, rather than independent fetches. Mechanically: The lookup in the import map (which is done as part of "resolving a module specifier") precedes the interpretation of fragments in the module specifier (which are treated as part of the module map key). (TODO: add example of use together.)
 
