@@ -20,7 +20,7 @@ This proposal adds a syntax to JavaScript to allow for several JavaScript module
 
 ```js
 // filename: app.js
-module "#count" {
+module countBlock {
   let i = 0;
 
   export function count() {
@@ -29,14 +29,14 @@ module "#count" {
   }
 }
 
-module "#uppercase" {
+export module uppercaseBlock {
   export function uppercase(string) {
     return string.toUpperCase();
   }
 }
 
-import { count } from "#count";
-import { uppercase } from "#uppercase";
+import { count } from countBlock;
+import { uppercase } from uppercaseBlock;
 
 console.log(count()); // 1
 console.log(uppercase("daniel")); // "DANIEL"
@@ -48,43 +48,38 @@ This module, containing multiple module fragments, is referenced from an HTML fi
 <script type=module src="./app.js"></script>
 ```
 
-Module fragments can also be used outside of the file where they are defined, by referencing the fragment relative to the URL of the broader JS which contains it.
+Module fragments, if exported, can also be used outside of the file where they are defined.
 
 ```html
 <script type=module>
-  import { uppercase } from "./app.js#uppercase";
+  import { uppercaseBlock } from "./app.js";
+  import { uppercase } from uppercaseBlock;
   console.log(uppercase("yes")); // "YES"
 </script>
 ```
 
-In this case, because we never import `./app.js`, and only import `./app.js#uppercase`, the top-level statements with `console.log` in `app.js` are never run, and only one value is logged, not three.
+The `countBlock` module, on the other hand, is not exported, and can not be used this way.
 
 ## Syntax
 
 `ModuleFragment` is a new nonterminal which can exist at the top level of a module, like `import` and `export` statements. Note that, as in the case of module blocks, there is no shared lexical scope between module fragments and the module that contains each other; they are simply side by side, like modules fetched from different URLs.
 
 ```
-ModuleItem :
-    ImportDeclaration
-    ExportDeclaration
-    StatementListItem[~Yield, ~Await, ~Return]
+Statement[Yield, Await, Return] :
+    ...
     <ins>ModuleFragment</ins>
 
-ModuleFragment : module [no LineTerminator here] ModuleSpecifier { Module }
+ModuleFragment : module [no LineTerminator here] Identifier { Module }
 ```
 
-Module fragments may not be nested inside of other module fragments; they can only be defined at the top level.
-
-This grammar does not *syntactically* conflict with [JS module blocks](https://github.com/tc39/proposal-js-module-blocks), which also use the `module` contextual keyword, but without a module specifier.
-
+Module fragments may be nested inside of other module fragments and can appear anywhere a statement can.
 Host environments may limit the kinds of module specifiers permitted, or where module fragments are used at all. See [HTML integration](#html-integration) below for an example.
 
 ## Semantics
 
-Each module fragment contained in a JS module is "top level":
-
-- Syntactically, module fragments can only be declared as a top-level statement of a module, not within another construct.
-- Module fragments are available outside of the module they are contained in (by using the full URL preceding the `#`). (See also [#4](https://github.com/littledan/proposal-module-fragments/issues/4) for the possibility of non-exported module fragments)
+- A module fragment at the top-level of a module can be imported statically.
+- A module fragment not at the top-level is syntactic sugar for a [JS module block](https://github.com/tc39/proposal-js-module-blocks) (which also uses the `module` contextual keyword, but without a module specifier).
+- Module fragments are only available outside of the module they are contained in if they are exported explicitly.
 - Each module fragment has its own top-level lexical scope. There is no shared scope.
 
 Within a particular Realm (e.g., HTML document), if a module fragment is imported multiple times, the same module "instance" is returned, just like with modules declared in separate JS files. In other words, module fragments are singletons.
@@ -93,60 +88,19 @@ Within a particular Realm (e.g., HTML document), if a module fragment is importe
 
 Note: The following is framed to give details for HTML/the Web platform, but other platforms which aim to be analogous to the Web where appropriate (e.g., Node.js) may wish to follow these designs as well.
 
-### Module fragments are named by URL fragments
-
-When used on the Web, the string which follows the `module` keyword is required to be the character `#` followed by a [URL fragment](https://url.spec.whatwg.org/#concept-url-fragment).
-
-```js
-// In https://example.com/bundle.js
-module "#counts" {
-  let i = 0;
-
-  export function count() {
-    i++;
-    return i;
-  }
-}
-```
-
-This module fragment `#counts` may be imported from within that particular JS file as `#counts`, or from anywhere else from an absolute URL, e.g., `"https://example.com/bundle.js#counts"` (or a relative URL where appropriate).
-
-Some further rules limiting how module fragments can be used in the Web:
-- No two module fragments may have the same specifier
-- Modules which are inline `<script type=module> /* ... */ </script>` tags in HTML may not use module fragments (since there would be no clear URL for them)
-
 ### `import.meta.url`
 
-The `import.meta.url` inside a module fragment is the module specifier of the surrounding module, followed by `#` and the fragment identifier. For example,
+The `import.meta.url` inside a module fragment is the module specifier of the surrounding module. For example,
 
 ```js
 // https://example.com/xyz.js
-module "#fragment" { console.log(import.meta.url); }
-import "#fragment";
+module fragment { console.log(import.meta.url); }
+import fragment;
 ```
 
-The above code will log `https://example.com/xyz.js#fragment`.
+The above code will log `https://example.com/xyz.js`.
 
-### Relative URL resolution
-
-Relative module specifiers within a module fragment are resolved just as if they were defined in the outer module. This behavior is the same as if they were calculated by `new URL(moduleSpecifier, import.meta.url)`. Module fragments can import other module fragments as well as top-level modules, based on these relative URLs. If a module specifier begins with `#`, it is interpreted to be a module fragment in the same outer module (as in the above examples). As an example of some further resolution:
-
-```js
-// https://example.com/a.js
-module "#b" { import "/c.js#d"; }
-```
-
-```js
-// https://example.com/c.js
-module "#d" { document.write("d"); }
-```
-
-```html
-<!-- https://example.com/index.html -->
-<script type=module src="a.js#b"></script>
-```
-
-The document `index.html` will contain `d` when run.
+Relative module specifiers within a module fragment are resolved just as if they were defined in the outer module. This behavior is the same as if they were calculated by `new URL(moduleSpecifier, import.meta.url)`.
 
 ### Module map semantics
 
@@ -154,21 +108,13 @@ JS module fragments, like all other modules, are kept track of in the [module ma
 
 ## FAQ
 
-### Why the `#`?
-
-It's @littledan's goal in life to make JS programmers write the `#` character all the time.
-
-No, seriously: the idea is to associate module fragments with the broader concept of URL fragment identifiers. Such an association makes it clear how module fragment relate to the broader pattern of using URLs for module specifiers, and it makes a clear syntax for importing a module fragment defined in a different file. Using fragments also makes this feature more "stateless"--you don't have to worry about loading things int he right order, getting the mapping in place before referring to it.
-
-Anyway, the interpretation of the specifier is host-defined, and not all hosts have to use `#`.
-
 ### Does this proposal meet privacy concerns about bundling?
 
 Brave has [expressed concerns](https://brave.com/webbundles-harmful-to-content-blocking-security-tools-and-the-open-web/) about the possibility that bundling could be used to let servers remap URLs more easily, which cuts against privacy techniques for blocking tracking, etc. This proposal has significantly less expressivity than Web Bundles, making these issues not as big of a risk:
 
 JS module bundles are restricted to just same-origin JS, so they are analogous in scope to what is currently done with popular bundlers like webpack and rollup, not adding more power. Although it is possible to rotate/scramble fragment identifiers, it is reasonable to treat the whole outer module containing several module fragments as a unit, with content blockers targeting either all or none of it.
 
-Martin Thompson of Mozilla has articulated a preference for bundling schemes to be based on URLs which accurately identify the identity of the resource. By identifying module fragments with URLs which include both where they were fetched from and the name of the component, the identity is clearly represented. (TODO: confirm this with MT)
+Martin Thompson of Mozilla has articulated a preference for bundling schemes to be based on URLs which accurately identify the identity of the resource. As module fragments can not be loaded directly, but only through the outer module, and the outer module is fetched by its URL, the identity is clearly represented. (TODO: confirm this with MT)
 
 ### Why have module fragments, rather than just focusing on general-purpose resource bundles?
 
@@ -191,16 +137,15 @@ It's my (Dan Ehrenberg's) hypothesis at this point that, for best performance, J
 
 [JS module blocks](https://github.com/tc39/proposal-js-module-blocks) are a separate concept for a module syntax which acts like a specifier: it can be imported with `import()` or `new Worker()`, but not with a static import statement, as it is not in the module map. Instead, it is a *key* in the module map. JS module blocks may be imported in other Realms.
 
-Module blocks are more flexible in where they can appear, given that they don't need to be addressed from a fixed place like module fragments are. Some examples of where module blocks can appear and module fragments cannot:
-- Within an `eval`
-- In a legacy script
-- In an inline module
-- Nested inside of a function
-- Dynamically created with the `ModuleBlock` constructor
+Module fragments lift this restriction: they can be imported statically if they appear at the top level of a module. This makes module fragments more useful for bundling than module blocks. See more context in [this FAQ](https://github.com/tc39/proposal-js-module-blocks#can-module-blocks-help-with-bundling).
 
-This flexibility helps module blocks be deployed more flexibly, allowing, e.g., increased uptake of Workers in diverse environments.
+If module fragments appear somewhere else (within an `eval`, in a legacy script, in an inline module, nested inside of a function, …), they act similar to a module block that is assigned to a variable:
 
-Module fragments have a module specifier expressed as a string, which they can be imported from. Module blocks don't have such an identifying string. This makes module fragments more useful for bundling than module blocks. See more context in [this FAQ](https://github.com/tc39/proposal-js-module-blocks#can-module-blocks-help-with-bundling).
+```js
+const mod = module { ... };
+module mod { ... }
+new Worker(mod);
+```
 
 ### Does this proposal work with import maps?
 
