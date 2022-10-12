@@ -10,7 +10,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 </pre>
 
 <emu-clause id="sec-module-declarations">
-  <h1>Module Declarations</h1>
+  <h1><ins>Module Declarations</ins></h1>
   <h2>Syntax</h2>
   <emu-grammar type="definition">
     ModuleDeclaration :
@@ -26,110 +26,13 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
   </emu-note>
 </emu-clause>
 
-<emu-clause id="sec-ecmascript-language-scripts-and-modules">
-  <h1>ECMAScript Language: Scripts and Modules</h1>
-
-  <emu-clause id="sec-scripts">
-    <h1>Scripts</h1>
-    <h2>Syntax</h2>
-    <emu-grammar type="definition">
-      Script :
-        ScriptBody?
-
-      ScriptBody :
-        <del>StatementList[~Yield, ~Await, ~Return]</del>
-        <ins>ScriptItemList</ins>
-
-      <ins>
-      ScriptItemList :
-        ScriptItemList ScriptItem
-      </ins>
-
-      <ins>
-      ScriptItem :
-        ModuleDeclaration
-        StatementListItem[~Yield, +Await, ~Return]
-      </ins>
-    </emu-grammar>
-
-    <emu-clause id="sec-scripts-static-semantics-early-errors">
-      <h1>Static Semantics: Early Errors</h1>
-      <emu-grammar>Script : ScriptBody</emu-grammar>
-      <ul>
-        <li>
-          It is a Syntax Error if the LexicallyDeclaredNames of |ScriptBody| contains any duplicate entries.
-        </li>
-        <li>
-          It is a Syntax Error if any element of the LexicallyDeclaredNames of |ScriptBody| also occurs in the VarDeclaredNames of |ScriptBody|.
-        </li>
-        <li>
-          <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ScriptBody| with argument a new empty List is *true*.</ins>
-        </li>
-      </ul>
-    </emu-clause>
-  </emu-clause>
-
-  <emu-clause id="sec-modules">
-    <h1>Modules</h1>
-    <h2>Syntax</h2>
-    <emu-grammar type="definition">
-      Module :
-        ModuleBody?
-
-      ModuleBody :
-        ModuleItemList
-
-      ModuleItemList :
-        ModuleItem
-        ModuleItemList ModuleItem
-
-      ModuleItem :
-        ImportDeclaration
-        ExportDeclaration
-        <ins>ModuleDeclaration</ins>
-        StatementListItem[~Yield, +Await, ~Return]
-    </emu-grammar>
-
-    <emu-clause id="sec-module-semantics">
-      <h1>Module Semantics</h1>
-
-      <emu-clause id="sec-module-semantics-static-semantics-early-errors">
-        <h1>Static Semantics: Early Errors</h1>
-        <emu-grammar><ins>Module : ModuleBody</ins></emu-grammar>
-        <ul>
-          <li>
-            <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ModuleBody| with argument a new empty List is *true*.</ins>
-          </li>
-        </ul>
-      </emu-clause>
-    </emu-clause>
-
-    <emu-clause id="sec-imports">
-      <h1>Imports</h1>
-      <h2>Syntax</h2>
-      <emu-grammar type="definition">
-        ImportDeclaration :
-          `import` ImportClause FromClause `;`
-          `import` ModuleSpecifier `;`
-
-        FromClause :
-          `from` ModuleSpecifier
-
-        ModuleSpecifier :
-          StringLiteral
-          <ins>Identifier</ins>
-      </emu-grammar>
-    </emu-clause>
-  </emu-clause>
-</emu-clause>
-
-<emu-clause id="sec-syntax-directed-operations">
+<emu-clause id="sec-syntax-directed-operations" number="8">
   <h1>Syntax-Directed Operations</h1>
 
-  <emu-clause id="sec-syntax-directed-operations-scope-analysis">
+  <emu-clause id="sec-syntax-directed-operations-scope-analysis" number="2">
     <h1>Scope Analysis</h1>
 
-    <emu-clause id="sec-containsundefinedmodulereference" type="sdo">
+    <emu-clause id="sec-containsundefinedmodulereference" type="sdo" number="12">
       <h1>
         <ins>
           Static Semantics: ContainsUndefinedModuleReference (
@@ -238,6 +141,103 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       <emu-alg>
         1. Return an empty List.
       </emu-alg>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-ecmascript-language-scripts-and-modules" number="16">
+  <h1>ECMAScript Language: Scripts and Modules</h1>
+
+  <emu-clause id="sec-scripts">
+    <h1>Scripts</h1>
+    <h2>Syntax</h2>
+    <emu-grammar type="definition">
+      Script :
+        ScriptBody?
+
+      ScriptBody :
+        <del>StatementList[~Yield, ~Await, ~Return]</del>
+        <ins>ScriptItemList</ins>
+
+      <ins>
+      ScriptItemList :
+        ScriptItemList ScriptItem
+      </ins>
+
+      <ins>
+      ScriptItem :
+        ModuleDeclaration
+        StatementListItem[~Yield, +Await, ~Return]
+      </ins>
+    </emu-grammar>
+
+    <emu-clause id="sec-scripts-static-semantics-early-errors">
+      <h1>Static Semantics: Early Errors</h1>
+      <emu-grammar>Script : ScriptBody</emu-grammar>
+      <ul>
+        <li>
+          It is a Syntax Error if the LexicallyDeclaredNames of |ScriptBody| contains any duplicate entries.
+        </li>
+        <li>
+          It is a Syntax Error if any element of the LexicallyDeclaredNames of |ScriptBody| also occurs in the VarDeclaredNames of |ScriptBody|.
+        </li>
+        <li>
+          <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ScriptBody| with argument a new empty List is *true*.</ins>
+        </li>
+      </ul>
+    </emu-clause>
+  </emu-clause>
+
+  <emu-clause id="sec-modules">
+    <h1>Modules</h1>
+    <h2>Syntax</h2>
+    <emu-grammar type="definition">
+      Module :
+        ModuleBody?
+
+      ModuleBody :
+        ModuleItemList
+
+      ModuleItemList :
+        ModuleItem
+        ModuleItemList ModuleItem
+
+      ModuleItem :
+        ImportDeclaration
+        ExportDeclaration
+        <ins>ModuleDeclaration</ins>
+        StatementListItem[~Yield, +Await, ~Return]
+    </emu-grammar>
+
+    <emu-clause id="sec-module-semantics">
+      <h1>Module Semantics</h1>
+
+      <emu-clause id="sec-module-semantics-static-semantics-early-errors">
+        <h1>Static Semantics: Early Errors</h1>
+        <emu-grammar><ins>Module : ModuleBody</ins></emu-grammar>
+        <ul>
+          <li>
+            <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ModuleBody| with argument a new empty List is *true*.</ins>
+          </li>
+        </ul>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="sec-imports">
+      <h1>Imports</h1>
+      <h2>Syntax</h2>
+      <emu-grammar type="definition">
+        ImportDeclaration :
+          `import` ImportClause FromClause `;`
+          `import` ModuleSpecifier `;`
+
+        FromClause :
+          `from` ModuleSpecifier
+
+        ModuleSpecifier :
+          StringLiteral
+          <ins>Identifier</ins>
+      </emu-grammar>
     </emu-clause>
   </emu-clause>
 </emu-clause>
