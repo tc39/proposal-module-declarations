@@ -6,18 +6,229 @@
 <pre class="metadata">
 title: Module Fragments
 stage: 1
-contributors: Daniel Ehrenberg
+contributors: Daniel Ehrenberg, Nicolò Ribaudo
 </pre>
 
-<emu-clause id="sec-demo-clause">
-  <h1>This is an emu-clause</h1>
-  <p>This is an algorithm:</p>
-  <emu-alg>
-    1. Let _proposal_ be *undefined*.
-    1. If IsAccepted(_proposal_), then
-      1. Let _stage_ be *0*<sub>ℤ</sub>.
-    1. Else,
-      1. Let _stage_ be *-1*<sub>ℤ</sub>.
-    1. Return ? ToString(_proposal_).
-  </emu-alg>
+<emu-clause id="sec-module-declarations">
+  <h1>Module Declarations</h1>
+  <h2>Syntax</h2>
+  <emu-grammar type="definition">
+    ModuleDeclaration :
+      `module` [no LineTerminator here] Identifier `{` ModuleBody? `}`
+  </emu-grammar>
+
+  <emu-note type="editor">
+    <p>This proposal builds on top of <a href="https://tc39.es/proposal-js-module-blocks/">the Module Blocks proposal</a>, which introduces the following production:</p>
+    <emu-grammar type="definition">
+      ModuleExpression :
+        `module` [no LineTerminator here] `{` ModuleBody? `}`
+    </emu-grammar>
+  </emu-note>
+</emu-clause>
+
+<emu-clause id="sec-ecmascript-language-scripts-and-modules">
+  <h1>ECMAScript Language: Scripts and Modules</h1>
+
+  <emu-clause id="sec-scripts">
+    <h1>Scripts</h1>
+    <h2>Syntax</h2>
+    <emu-grammar type="definition">
+      Script :
+        ScriptBody?
+
+      ScriptBody :
+        <del>StatementList[~Yield, ~Await, ~Return]</del>
+        <ins>ScriptItemList</ins>
+
+      <ins>
+      ScriptItemList :
+        ScriptItemList ScriptItem
+      </ins>
+
+      <ins>
+      ScriptItem :
+        ModuleDeclaration
+        StatementListItem[~Yield, +Await, ~Return]
+      </ins>
+    </emu-grammar>
+
+    <emu-clause id="sec-scripts-static-semantics-early-errors">
+      <h1>Static Semantics: Early Errors</h1>
+      <emu-grammar>Script : ScriptBody</emu-grammar>
+      <ul>
+        <li>
+          It is a Syntax Error if the LexicallyDeclaredNames of |ScriptBody| contains any duplicate entries.
+        </li>
+        <li>
+          It is a Syntax Error if any element of the LexicallyDeclaredNames of |ScriptBody| also occurs in the VarDeclaredNames of |ScriptBody|.
+        </li>
+        <li>
+          <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ScriptBody| with argument a new empty List is *true*.</ins>
+        </li>
+      </ul>
+    </emu-clause>
+  </emu-clause>
+
+  <emu-clause id="sec-modules">
+    <h1>Modules</h1>
+    <h2>Syntax</h2>
+    <emu-grammar type="definition">
+      Module :
+        ModuleBody?
+
+      ModuleBody :
+        ModuleItemList
+
+      ModuleItemList :
+        ModuleItem
+        ModuleItemList ModuleItem
+
+      ModuleItem :
+        ImportDeclaration
+        ExportDeclaration
+        <ins>ModuleDeclaration</ins>
+        StatementListItem[~Yield, +Await, ~Return]
+    </emu-grammar>
+
+    <emu-clause id="sec-module-semantics">
+      <h1>Module Semantics</h1>
+
+      <emu-clause id="sec-module-semantics-static-semantics-early-errors">
+        <h1>Static Semantics: Early Errors</h1>
+        <emu-grammar><ins>Module : ModuleBody</ins></emu-grammar>
+        <ul>
+          <li>
+            <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ModuleBody| with argument a new empty List is *true*.</ins>
+          </li>
+        </ul>
+      </emu-clause>
+    </emu-clause>
+
+    <emu-clause id="sec-imports">
+      <h1>Imports</h1>
+      <h2>Syntax</h2>
+      <emu-grammar type="definition">
+        ImportDeclaration :
+          `import` ImportClause FromClause `;`
+          `import` ModuleSpecifier `;`
+
+        FromClause :
+          `from` ModuleSpecifier
+
+        ModuleSpecifier :
+          StringLiteral
+          <ins>Identifier</ins>
+      </emu-grammar>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-syntax-directed-operations">
+  <h1>Syntax-Directed Operations</h1>
+
+  <emu-clause id="sec-syntax-directed-operations-scope-analysis">
+    <h1>Scope Analysis</h1>
+
+    <emu-clause id="sec-containsundefinedmodulereference" type="sdo">
+      <h1>
+        <ins>
+          Static Semantics: ContainsUndefinedModuleReference (
+            _declaredModules_: a List of Strings,
+          ): a Boolean
+        </ins>
+      </h1>
+      <dl class="header">
+      </dl>
+      <p>Unless explicitly specified otherwise, all nonterminals have an implicit definition for ContainsUndefinedModuleReference with argument _declaredModules_.The implicit definition applies ContainsUndefinedModuleReference with argument _declaredModules_ to the nonterminal's inner nonterminals, and returns *true* if it's *true* for any of them. For example, ContainsUndefinedModuleReference of |ExponentiationExpression| is implicitly defined as follows:</p>
+      <emu-grammar example>
+        ExponentiationExpression : UpdateExpression `**` ExponentiationExpression
+      </emu-grammar>
+      <emu-alg example>
+        1. Let _hasUndefinedRef_ be ContainsUndefinedModuleReference of |UpdateExpression| with argument _declaredModules_.
+        1. If _hasUndefinedRef_ is *true*, return *true*.
+        1. Return ContainsUndefinedModuleReference of |ExponentiationExpression| with argument _declaredModules_.
+      </emu-alg>
+
+      <p>The following productions have a different definition of ContainsUndefinedModuleReference:</p>
+
+      <emu-grammar>
+        ModuleSpecifier : Identifier
+      </emu-grammar>
+      <emu-alg>
+        1. Let _reference_ be the StringValue of |Identifier|.
+        1. If _reference_ is in _declaredModules_, return *false*.
+        1. Return *true*.
+      </emu-alg>
+
+      <emu-grammar>
+        ModuleBody : ModuleItemList
+      </emu-grammar>
+      <emu-alg>
+        1. Let _localDeclaredModules_ be DeclaredModuleNames of |ModuleItemList|.
+        1. Let _allDeclaredModules_ be the list-concatenation of _declaredModules_ and _localDeclaredModules_.
+        1. Return ContainsUndefinedModuleReference of |ModuleItemList| with argument _allDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        ScriptBody : ScriptItemList
+      </emu-grammar>
+      <emu-alg>
+        1. Assert: _declaredModules_ is an empty List.
+        1. Let _localDeclaredModules_ be DeclaredModuleNames of |ScriptItemList|.
+        1. Return ContainsUndefinedModuleReference of |ScriptItemList| with argument _localDeclaredModules_.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-declaredmodulenames" type="sdo">
+      <h1>
+        <ins>
+          Static Semantics: DeclaredModuleNames ( ): a Boolean
+        </ins>
+      </h1>
+      <dl class="header">
+      </dl>
+
+      <emu-grammar>
+        ModuleDeclaration : `module` Identifier `{` ModuleBody? `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return a List whose sole element is the StringValue of |Identifier|.
+      </emu-alg>
+
+      <emu-grammar>
+        ModuleItemList : ModuleItemList ModuleItem
+      </emu-grammar>
+      <emu-alg>
+        1. Let _names1_ be DeclaredModuleNames of |ModuleItemList|.
+        1. Let _names2_ be DeclaredModuleNames of |ModuleItem|.
+        1. Return the list-concatenation of _names1_ and _names2_.
+      </emu-alg>
+
+      <emu-grammar>
+        ScriptItemList : ScriptItemList ScriptItem
+      </emu-grammar>
+      <emu-alg>
+        1. Let _names1_ be DeclaredModuleNames of |ScriptItemList|.
+        1. Let _names2_ be DeclaredModuleNames of |ScriptItem|.
+        1. Return the list-concatenation of _names1_ and _names2_.
+      </emu-alg>
+
+      <emu-grammar>
+        ModuleItem :
+          ImportDeclaration
+          ExportDeclaration
+          StatementListItem
+      </emu-grammar>
+      <emu-alg>
+        1. Return an empty List.
+      </emu-alg>
+
+      <emu-grammar>
+        ScriptItem : StatementListItem
+      </emu-grammar>
+      <emu-alg>
+        1. Return an empty List.
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
 </emu-clause>
