@@ -24,6 +24,70 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
         `module` [no LineTerminator here] `{` ModuleBody? `}`
     </emu-grammar>
   </emu-note>
+
+  <emu-clause id="sec-module-declarations-evaluation">
+    <h1>Runtime Semantics: Evaluation</h1>
+
+    <emu-grammar>
+      ModuleDeclaration : `module` Identifier `{` ModuleBody? `}`
+    </emu-grammar>
+    <emu-alg>
+      1. Return ~empty~.
+    </emu-alg>
+  </emu-clause>
+
+  <emu-clause id="sec-module-declaration-instantiatemoduleobject" type="sdo">
+    <h1>
+      Runtime Semantics: InstantiateModuleObject ( ): a ModuleBlock object
+    </h1>
+    <dl class="header">
+    </dl>
+
+    <emu-grammar>
+      ModuleDeclaration : `module` Identifier `{` `}`
+    </emu-grammar>
+    <emu-alg>
+      1. Let _sourceText_ be the source text matched by |ModuleDeclaration|.
+      1. Return CreateModuleObjectFromSyntax(*""*, _sourceText_).
+    </emu-alg>
+
+    <emu-grammar>
+      ModuleDeclaration : `module` Identifier `{` ModuleBody `}`
+    </emu-grammar>
+    <emu-alg>
+      1. Let _body_ be the source text matche by |ModuleBody|.
+      1. Let _sourceText_ be the source text matched by |ModuleDeclaration|.
+      1. Return CreateModuleObjectFromSyntax(_body_, _sourceText_).
+    </emu-alg>
+
+    <emu-clause id="sec-module-declaration-createmoduleobjectfromsyntax" type="abstract operation">
+      <h1>
+        CreateModuleObjectFromSyntax (
+          _body_: a String,
+          _sourceText_: a String,
+        ): a ModuleBlock object
+      </h1>
+      <dl class="header">
+      </dl>
+
+      <emu-alg>
+        1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
+        1. Let _realm_ be the current Realm Record.
+        1. Let _currentScriptOrModule_ be GetActiveScriptOrModule().
+        1. If _currentScriptOrModule_ is *null*, let _hostDefined_ be *null*.
+        1. Else, let _hostDefined_ be _currentScriptOrModule_.[[HostDefined]].
+        1. Let _moduleRecord_ be ParseModule(_body_, _realm_, _hostDefined_).
+        1. Assert: _moduleRecord_ is a Module Record, because parse errors would have been reported when parsing the outer script or module.
+        1. Set _moduleBlock_.[[ModuleRecord]] to _moduleRecord_.
+        1. Set _moduleBlock_.[[SourceText]] to _sourceText_.
+        1. Return _moduleBlock_.
+      </emu-alg>
+
+      <emu-note type="editor">
+        This AO can be reused by the initialization of module blocks.
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
 </emu-clause>
 
 <emu-clause id="sec-syntax-directed-operations" number="8">
@@ -31,6 +95,48 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 
   <emu-clause id="sec-syntax-directed-operations-scope-analysis" number="2">
     <h1>Scope Analysis</h1>
+
+    <emu-clause id="sec-static-semantics-boundnames" type="sdo" number="1">
+      <h1>Static Semantics: BoundNames ( ): a List of Strings</h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>
+        <ins>ModuleDeclaration : `module` Identifier `{` ModuleBody? `}`</ins>
+      </emu-grammar>
+      <emu-alg>
+        1. Return the BoundNames of Identifier.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-static-semantics-isconstantdeclaration" type="sdo" number="3">
+      <h1>Static Semantics: IsConstantDeclaration ( ): a Boolean</h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>
+        <ins>ModuleDeclaration : `module` Identifier `{` ModuleBody? `}`</ins>
+      </emu-grammar>
+      <emu-alg>
+        1. Return *true*.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-static-semantics-lexicallyscopeddeclarations" type="sdo" number="5">
+      <h1>Static Semantics: LexicallyScopedDeclarations ( ): a List of Parse Nodes</h1>
+      <dl class="header">
+      </dl>
+      <emu-grammar>
+        <ins>ModuleItem : ModuleDeclaration</ins>
+      </emu-grammar>
+      <emu-alg>
+        1. Return a List whose sole element is |ModuleDeclaration|.
+      </emu-alg>
+      <emu-grammar>
+        <ins>ScriptItem : ModuleDeclaration</ins>
+      </emu-grammar>
+      <emu-alg>
+        1. Return a List whose sole element is |ModuleDeclaration|.
+      </emu-alg>
+    </emu-clause>
 
     <emu-clause id="sec-containsundefinedmodulereference" type="sdo" number="12">
       <h1>
@@ -171,7 +277,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </ins>
     </emu-grammar>
 
-    <emu-clause id="sec-scripts-static-semantics-early-errors">
+    <emu-clause id="sec-scripts-static-semantics-early-errors" number="1">
       <h1>Static Semantics: Early Errors</h1>
       <emu-grammar>Script : ScriptBody</emu-grammar>
       <ul>
@@ -185,6 +291,86 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ScriptBody| with argument a new empty List is *true*.</ins>
         </li>
       </ul>
+    </emu-clause>
+
+    <emu-clause id="sec-globaldeclarationinstantiation" type="abstract operation" number="7">
+      <h1>
+        GlobalDeclarationInstantiation (
+          _script_: a |Script| Parse Node,
+          _env_: a Global Environment Record,
+        ): either a normal completion containing ~unused~ or a throw completion
+      </h1>
+      <dl class="header">
+        <dt>description</dt>
+        <dd>_script_ is the |Script| for which the execution context is being established. _env_ is the global environment in which bindings are to be created.</dd>
+      </dl>
+      <!--
+        WARNING: If you add, remove, rename, or repurpose any variable names
+                 within this algorithm, you may need to update
+                 #sec-web-compat-globaldeclarationinstantiation accordingly.
+      -->
+      <emu-alg>
+        1. Let _lexNames_ be the LexicallyDeclaredNames of _script_.
+        1. Let _varNames_ be the VarDeclaredNames of _script_.
+        1. For each element _name_ of _lexNames_, do
+          1. If _env_.HasVarDeclaration(_name_) is *true*, throw a *SyntaxError* exception.
+          1. If _env_.HasLexicalDeclaration(_name_) is *true*, throw a *SyntaxError* exception.
+          1. Let _hasRestrictedGlobal_ be ? _env_.HasRestrictedGlobalProperty(_name_).
+          1. If _hasRestrictedGlobal_ is *true*, throw a *SyntaxError* exception.
+        1. For each element _name_ of _varNames_, do
+          1. If _env_.HasLexicalDeclaration(_name_) is *true*, throw a *SyntaxError* exception.
+        1. Let _varDeclarations_ be the VarScopedDeclarations of _script_.
+        1. Let _functionsToInitialize_ be a new empty List.
+        1. Let _declaredFunctionNames_ be a new empty List.
+        1. For each element _d_ of _varDeclarations_, in reverse List order, do
+          1. If _d_ is neither a |VariableDeclaration| nor a |ForBinding| nor a |BindingIdentifier|, then
+            1. Assert: _d_ is either a |FunctionDeclaration|, a |GeneratorDeclaration|, an |AsyncFunctionDeclaration|, or an |AsyncGeneratorDeclaration|.
+            1. NOTE: If there are multiple function declarations for the same name, the last declaration is used.
+            1. Let _fn_ be the sole element of the BoundNames of _d_.
+            1. If _fn_ is not an element of _declaredFunctionNames_, then
+              1. Let _fnDefinable_ be ? _env_.CanDeclareGlobalFunction(_fn_).
+              1. If _fnDefinable_ is *false*, throw a *TypeError* exception.
+              1. Append _fn_ to _declaredFunctionNames_.
+              1. Insert _d_ as the first element of _functionsToInitialize_.
+        1. Let _declaredVarNames_ be a new empty List.
+        1. For each element _d_ of _varDeclarations_, do
+          1. If _d_ is a |VariableDeclaration|, a |ForBinding|, or a |BindingIdentifier|, then
+            1. For each String _vn_ of the BoundNames of _d_, do
+              1. If _vn_ is not an element of _declaredFunctionNames_, then
+                1. Let _vnDefinable_ be ? _env_.CanDeclareGlobalVar(_vn_).
+                1. If _vnDefinable_ is *false*, throw a *TypeError* exception.
+                1. If _vn_ is not an element of _declaredVarNames_, then
+                  1. Append _vn_ to _declaredVarNames_.
+        1. NOTE: No abnormal terminations occur after this algorithm step if the global object is an ordinary object. However, if the global object is a Proxy exotic object it may exhibit behaviours that cause abnormal terminations in some of the following steps.
+        1. [id="step-globaldeclarationinstantiation-web-compat-insertion-point"] NOTE: Annex <emu-xref href="#sec-web-compat-globaldeclarationinstantiation"></emu-xref> adds additional steps at this point.
+        1. Let _lexDeclarations_ be the LexicallyScopedDeclarations of _script_.
+        1. <ins>Let _modulesToInitialize_ be a new empty List.</ins>
+        1. Let _privateEnv_ be *null*.
+        1. For each element _d_ of _lexDeclarations_, do
+          1. NOTE: Lexically declared names are only instantiated here but not initialized.
+          1. For each element _dn_ of the BoundNames of _d_, do
+            1. If IsConstantDeclaration of _d_ is *true*, then
+              1. Perform ? <emu-meta effects="user-code">_env_.CreateImmutableBinding</emu-meta>(_dn_, *true*).
+            1. Else,
+              1. Perform ? <emu-meta effects="user-code">_env_.CreateMutableBinding</emu-meta>(_dn_, *false*).
+            1. <ins>If _d_ is a |ModuleDeclaration|, then</ins>
+              1. <ins>Append _d_ to _modulesToInitialize_.</ins>
+        1. <ins>For each Parse Node _m_ of _modulesToInitialize_, do</ins>
+            1. <ins>Let _mn_ be the sole element of the BoundNames of _m_.</ins>
+            1. <ins>Let _mo_ be InstantiateModuleObject of _m_.</ins>
+            1. <ins>Perform ! _env_.InitializeBinding(_mn_, _mo_).</ins>
+        1. For each Parse Node _f_ of _functionsToInitialize_, do
+          1. Let _fn_ be the sole element of the BoundNames of _f_.
+          1. Let _fo_ be InstantiateFunctionObject of _f_ with arguments _env_ and _privateEnv_.
+          1. Perform ? <emu-meta effects="user-code">_env_.CreateGlobalFunctionBinding</emu-meta>(_fn_, _fo_, *false*).
+        1. For each String _vn_ of _declaredVarNames_, do
+          1. Perform ? <emu-meta effects="user-code">_env_.CreateGlobalVarBinding</emu-meta>(_vn_, *false*).
+        1. Return ~unused~.
+      </emu-alg>
+      <emu-note>
+        <p>Early errors specified in <emu-xref href="#sec-scripts-static-semantics-early-errors"></emu-xref> prevent name conflicts between function/var declarations and let/const/class<ins>/module</ins> declarations as well as redeclaration of let/const/class<ins>/module</ins> bindings for declaration contained within a single |Script|. However, such conflicts and redeclarations that span more than one |Script| are detected as runtime errors during GlobalDeclarationInstantiation. If any such errors are detected, no bindings are instantiated for the script. However, if the global object is defined using Proxy exotic objects then the runtime tests for conflicting declarations may be unreliable resulting in an abrupt completion and some global declarations not being instantiated. If this occurs, the code for the |Script| is not evaluated.</p>
+        <p>Unlike explicit var or function declarations, properties that are directly created on the global object result in global bindings that may be shadowed by let/const/class<ins>/module</ins> declarations.</p>
+      </emu-note>
     </emu-clause>
   </emu-clause>
 
@@ -212,7 +398,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
     <emu-clause id="sec-module-semantics">
       <h1>Module Semantics</h1>
 
-      <emu-clause id="sec-module-semantics-static-semantics-early-errors">
+      <emu-clause id="sec-module-semantics-static-semantics-early-errors" number="1">
         <h1>Static Semantics: Early Errors</h1>
         <emu-grammar><ins>Module : ModuleBody</ins></emu-grammar>
         <ul>
@@ -220,6 +406,83 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ModuleBody| with argument a new empty List is *true*.</ins>
           </li>
         </ul>
+      </emu-clause>
+
+      <emu-clause id="sec-source-text-module-records" number="6">
+        <h1>Source Text Module Records</h1>
+
+        <p>The following definitions specify the required concrete methods and other abstract operations for Source Text Module Records</p>
+
+        <emu-clause id="sec-source-text-module-record-initialize-environment" type="concrete method" number="4">
+          <h1>InitializeEnvironment ( ): either a normal completion containing ~unused~ or a throw completion</h1>
+          <dl class="header">
+            <dt>for</dt>
+            <dd>a Source Text Module Record _module_</dd>
+          </dl>
+
+          <emu-alg>
+            1. For each ExportEntry Record _e_ of _module_.[[IndirectExportEntries]], do
+              1. Let _resolution_ be ? _module_.ResolveExport(_e_.[[ExportName]]).
+              1. If _resolution_ is *null* or ~ambiguous~, throw a *SyntaxError* exception.
+              1. Assert: _resolution_ is a ResolvedBinding Record.
+            1. Assert: All named exports from _module_ are resolvable.
+            1. Let _realm_ be _module_.[[Realm]].
+            1. Assert: _realm_ is not *undefined*.
+            1. Let _env_ be NewModuleEnvironment(_realm_.[[GlobalEnv]]).
+            1. Set _module_.[[Environment]] to _env_.
+            1. For each ImportEntry Record _in_ of _module_.[[ImportEntries]], do
+              1. Let _importedModule_ be GetImportedModule(_module_, _in_.[[ModuleRequest]]).
+              1. Assert: _importedModule_ is not ~empty~, because imported module requests are a subset of _module_.[[RequestedModules]], and these have been resolved earlier in this algorithm.
+              1. If _in_.[[ImportName]] is ~namespace-object~, then
+                1. Let _namespace_ be ? GetModuleNamespace(_importedModule_).
+                1. Perform ! _env_.CreateImmutableBinding(_in_.[[LocalName]], *true*).
+                1. Perform ! _env_.InitializeBinding(_in_.[[LocalName]], _namespace_).
+              1. Else,
+                1. Let _resolution_ be ? _importedModule_.ResolveExport(_in_.[[ImportName]]).
+                1. If _resolution_ is *null* or ~ambiguous~, throw a *SyntaxError* exception.
+                1. If _resolution_.[[BindingName]] is ~namespace~, then
+                  1. Let _namespace_ be ? GetModuleNamespace(_resolution_.[[Module]]).
+                  1. Perform ! _env_.CreateImmutableBinding(_in_.[[LocalName]], *true*).
+                  1. Perform ! _env_.InitializeBinding(_in_.[[LocalName]], _namespace_).
+                1. Else,
+                  1. Perform _env_.CreateImportBinding(_in_.[[LocalName]], _resolution_.[[Module]], _resolution_.[[BindingName]]).
+            1. Let _moduleContext_ be a new ECMAScript code execution context.
+            1. Set the Function of _moduleContext_ to *null*.
+            1. Assert: _module_.[[Realm]] is not *undefined*.
+            1. Set the Realm of _moduleContext_ to _module_.[[Realm]].
+            1. Set the ScriptOrModule of _moduleContext_ to _module_.
+            1. Set the VariableEnvironment of _moduleContext_ to _module_.[[Environment]].
+            1. Set the LexicalEnvironment of _moduleContext_ to _module_.[[Environment]].
+            1. Set the PrivateEnvironment of _moduleContext_ to *null*.
+            1. Set _module_.[[Context]] to _moduleContext_.
+            1. Push _moduleContext_ onto the execution context stack; _moduleContext_ is now the running execution context.
+            1. Let _code_ be _module_.[[ECMAScriptCode]].
+            1. Let _varDeclarations_ be the VarScopedDeclarations of _code_.
+            1. Let _declaredVarNames_ be a new empty List.
+            1. For each element _d_ of _varDeclarations_, do
+              1. For each element _dn_ of the BoundNames of _d_, do
+                1. If _dn_ is not an element of _declaredVarNames_, then
+                  1. Perform ! _env_.CreateMutableBinding(_dn_, *false*).
+                  1. Perform ! _env_.InitializeBinding(_dn_, *undefined*).
+                  1. Append _dn_ to _declaredVarNames_.
+            1. Let _lexDeclarations_ be the LexicallyScopedDeclarations of _code_.
+            1. Let _privateEnv_ be *null*.
+            1. For each element _d_ of _lexDeclarations_, do
+              1. For each element _dn_ of the BoundNames of _d_, do
+                1. If IsConstantDeclaration of _d_ is *true*, then
+                  1. Perform ! _env_.CreateImmutableBinding(_dn_, *true*).
+                1. Else,
+                  1. Perform ! _env_.CreateMutableBinding(_dn_, *false*).
+                1. If _d_ is a |FunctionDeclaration|, a |GeneratorDeclaration|, an |AsyncFunctionDeclaration|, or an |AsyncGeneratorDeclaration|, then
+                  1. Let _fo_ be InstantiateFunctionObject of _d_ with arguments _env_ and _privateEnv_.
+                  1. Perform ! _env_.InitializeBinding(_dn_, _fo_).
+                1. <ins>Else if _d_ is a |ModuleDeclaration|, then</ins>
+                  1. <ins>Let _mo_ be InstantiateModuleObject of _d_.</ins>
+                  1. <ins>Perform ! _env_.InitializeBinding(_dn_, _mo_).</ins>
+            1. Remove _moduleContext_ from the execution context stack.
+            1. Return ~unused~.
+          </emu-alg>
+        </emu-clause>
       </emu-clause>
     </emu-clause>
 
