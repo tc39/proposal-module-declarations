@@ -217,7 +217,16 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
         ModuleItem :
           ImportDeclaration
           ExportDeclaration
-          StatementListItem
+      </emu-grammar>
+      <emu-alg>
+        1. Return a new empty List.
+      </emu-alg>
+      <emu-note type="editor">
+        TODO: Allow importing and exporting module fragments.
+      </emu-note>
+
+      <emu-grammar>
+        ModuleItem : StatementListItem
       </emu-grammar>
       <emu-alg>
         1. Return an empty List.
