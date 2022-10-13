@@ -11,11 +11,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 
 <emu-clause id="sec-module-declarations">
   <h1><ins>Module Declarations</ins></h1>
-  <h2>Syntax</h2>
-  <emu-grammar type="definition">
-    ModuleDeclaration :
-      `module` [no LineTerminator here] Identifier `{` ModuleBody? `}`
-  </emu-grammar>
 
   <emu-note type="editor">
     <p>This proposal builds on top of <a href="https://tc39.es/proposal-js-module-blocks/">the Module Blocks proposal</a>, which introduces the following production:</p>
@@ -23,7 +18,14 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       ModuleExpression :
         `module` [no LineTerminator here] `{` ModuleBody? `}`
     </emu-grammar>
+    <p>More specifically, it'a diff on top of <a href="https://github.com/tc39/proposal-js-module-blocks/pull/75">tc39/proposal-js-module-blocks#75</a>, which is itself a diff on top of <a href="https://github.com/tc39/ecma262/pull/2905">tc39/ecma262#2905</a>.</p>
   </emu-note>
+
+  <h2>Syntax</h2>
+  <emu-grammar type="definition">
+    ModuleDeclaration :
+      `module` [no LineTerminator here] Identifier `{` ModuleBody? `}`
+  </emu-grammar>
 
   <emu-clause id="sec-module-declarations-evaluation">
     <h1>Runtime Semantics: Evaluation</h1>
@@ -38,55 +40,25 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 
   <emu-clause id="sec-module-declaration-instantiatemoduleobject" type="sdo">
     <h1>
-      Runtime Semantics: InstantiateModuleObject ( ): a ModuleBlock object
+      Runtime Semantics: InstantiateModuleDeclaration ( ): a ModuleBlock object
     </h1>
     <dl class="header">
     </dl>
 
     <emu-grammar>
-      ModuleDeclaration : `module` Identifier `{` `}`
+      ModuleDeclaration : `module` Identifier `{` ModuleBody? `}`
     </emu-grammar>
     <emu-alg>
-      1. Let _sourceText_ be the source text matched by |ModuleDeclaration|.
-      1. Return CreateModuleObjectFromSyntax(*""*, _sourceText_).
+      1. Let _name_ be the StringValue of |Identifier|.
+      1. Let _currentScriptOrModule_ be GetActiveScriptOrModule().
+      1. Assert: _currentScriptOrModule_ is not *null*.
+      1. Let _moduleDeclaration_ be the Record in _currentScriptOrModule_.[[VisibleModuleDeclarations]] with [[Name]] equal to _name_.
+      1. Assert: _moduleDeclaration_ exists and is unique.
+      1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
+      1. Set _moduleBlock_.[[ModuleRecord]] to _moduleDeclaration_.[[Module]].
+      1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleDeclaration|.
+      1. Return _moduleBlock_.
     </emu-alg>
-
-    <emu-grammar>
-      ModuleDeclaration : `module` Identifier `{` ModuleBody `}`
-    </emu-grammar>
-    <emu-alg>
-      1. Let _body_ be the source text matche by |ModuleBody|.
-      1. Let _sourceText_ be the source text matched by |ModuleDeclaration|.
-      1. Return CreateModuleObjectFromSyntax(_body_, _sourceText_).
-    </emu-alg>
-
-    <emu-clause id="sec-module-declaration-createmoduleobjectfromsyntax" type="abstract operation">
-      <h1>
-        CreateModuleObjectFromSyntax (
-          _body_: a String,
-          _sourceText_: a String,
-        ): a ModuleBlock object
-      </h1>
-      <dl class="header">
-      </dl>
-
-      <emu-alg>
-        1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
-        1. Let _realm_ be the current Realm Record.
-        1. Let _currentScriptOrModule_ be GetActiveScriptOrModule().
-        1. If _currentScriptOrModule_ is *null*, let _hostDefined_ be *null*.
-        1. Else, let _hostDefined_ be _currentScriptOrModule_.[[HostDefined]].
-        1. Let _moduleRecord_ be ParseModule(_body_, _realm_, _hostDefined_).
-        1. Assert: _moduleRecord_ is a Module Record, because parse errors would have been reported when parsing the outer script or module.
-        1. Set _moduleBlock_.[[ModuleRecord]] to _moduleRecord_.
-        1. Set _moduleBlock_.[[SourceText]] to _sourceText_.
-        1. Return _moduleBlock_.
-      </emu-alg>
-
-      <emu-note type="editor">
-        This AO can be reused by the initialization of module blocks.
-      </emu-note>
-    </emu-clause>
   </emu-clause>
 </emu-clause>
 
@@ -231,7 +203,78 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
         1. Return a new empty List.
       </emu-alg>
       <emu-note type="editor">
-        TODO: Allow importing and exporting module fragments.
+        TODO: Allow importing and exporting module declarations.
+      </emu-note>
+
+      <emu-grammar>
+        ModuleItem : StatementListItem
+      </emu-grammar>
+      <emu-alg>
+        1. Return an empty List.
+      </emu-alg>
+
+      <emu-grammar>
+        ScriptItem : StatementListItem
+      </emu-grammar>
+      <emu-alg>
+        1. Return an empty List.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-rawmoduledeclarations" type="sdo">
+      <h1>
+        <ins>
+          Static Semantics: RawModuleDeclarations ( ): a List of Records with fields [[Name]] (a String) and [[Body]] (a String)
+        </ins>
+      </h1>
+      <dl class="header">
+      </dl>
+
+      <emu-grammar>
+        ModuleDeclaration : `module` Identifier `{` `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Let _name_ be the StringValue of |Identifier|.
+        1. Return a List whose sole element is the Record { [[Name]]: _name_, [[Body]]: *""* }.
+      </emu-alg>
+
+      <emu-grammar>
+        ModuleDeclaration : `module` Identifier `{` ModuleBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Let _name_ be the StringValue of |Identifier|.
+        1. Let _body_ be the source text matched by |ModuleBody|.
+        1. Return a List whose sole element is the Record { [[Name]]: _name_, [[Body]]: _body_ }.
+      </emu-alg>
+
+      <emu-grammar>
+        ModuleItemList : ModuleItemList ModuleItem
+      </emu-grammar>
+      <emu-alg>
+        1. Let _decls1_ be RawModuleDeclarations of |ModuleItemList|.
+        1. Let _decls2_ be RawModuleDeclarations of |ModuleItem|.
+        1. Return the list-concatenation of _decls1_ and _decls2_.
+      </emu-alg>
+
+      <emu-grammar>
+        ScriptItemList : ScriptItemList ScriptItem
+      </emu-grammar>
+      <emu-alg>
+        1. Let _decls1_ be RawModuleDeclarations of |ScriptItemList|.
+        1. Let _decls2_ be RawModuleDeclarations of |ScriptItem|.
+        1. Return the list-concatenation of _decls1_ and _decls2_.
+      </emu-alg>
+
+      <emu-grammar>
+        ModuleItem :
+          ImportDeclaration
+          ExportDeclaration
+      </emu-grammar>
+      <emu-alg>
+        1. Return a new empty List.
+      </emu-alg>
+      <emu-note type="editor">
+        TODO: Allow importing and exporting module declarations.
       </emu-note>
 
       <emu-grammar>
@@ -291,6 +334,97 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ScriptBody| with argument a new empty List is *true*.</ins>
         </li>
       </ul>
+    </emu-clause>
+
+    <emu-clause id="sec-script-records" number="4">
+      <h1>Script Records</h1>
+
+      <p>A <dfn id="script-record" variants="Script Records">Script Record</dfn> encapsulates information about a script being evaluated. Each script record contains the fields listed in <emu-xref href="#table-script-records"></emu-xref>.</p>
+
+      <emu-table id="table-script-records" caption="Script Record Fields">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+          </thead>
+          <tr>
+            <td>
+              [[Realm]]
+            </td>
+            <td>
+              a Realm Record or *undefined*
+            </td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              [[ECMAScriptCode]]
+            </td>
+            <td>
+              a Parse Node
+            </td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              [[LoadedModules]]
+            </td>
+            <td>
+              a List of Records with fields [[Specifier]] (a <del>String</del><ins>ModuleSpecifier Record</ins>) and [[Module]] (a Module Record)
+            </td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <ins>[[VisibleModuleDeclarations]]</ins>
+            </td>
+            <td>
+              <ins>a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)</ins>
+            </td>
+            <td>
+              <ins>All the |ModuleDeclaration| declarations that are accessible from this script. It does not contain two different records with the same [[Name]].</ins>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              [[HostDefined]]
+            </td>
+            <td>
+              anything (default value is ~empty~)
+            </td>
+            <td></td>
+          </tr>
+        </table>
+      </emu-table>
+    </emu-clause>
+
+    <emu-clause id="sec-parse-script" type="abstract operation" number="5">
+      <h1>
+        ParseScript (
+          _sourceText_: ECMAScript source text,
+          _realm_: a Realm Record or *undefined*,
+          _hostDefined_: anything,
+        ): a Script Record or a non-empty List of *SyntaxError* objects
+      </h1>
+      <dl class="header">
+        <dt>description</dt>
+        <dd>It creates a Script Record based upon the result of parsing _sourceText_ as a |Script|.</dd>
+      </dl>
+
+      <emu-alg>
+        1. Let _script_ be ParseText(_sourceText_, |Script|).
+        1. If _script_ is a List of errors, return _script_.
+        1. Return Script Record { [[Realm]]: _realm_, [[ECMAScriptCode]]: _script_, [[LoadedModules]]: &laquo; &raquo;, <ins>[[VisibleModuleDeclarations]]: &laquo; &raquo;,</ins> [[HostDefined]]: _hostDefined_ }.
+      </emu-alg>
     </emu-clause>
 
     <emu-clause id="sec-globaldeclarationinstantiation" type="abstract operation" number="7">
@@ -357,7 +491,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
               1. <ins>Append _d_ to _modulesToInitialize_.</ins>
         1. <ins>For each Parse Node _m_ of _modulesToInitialize_, do</ins>
             1. <ins>Let _mn_ be the sole element of the BoundNames of _m_.</ins>
-            1. <ins>Let _mo_ be InstantiateModuleObject of _m_.</ins>
+            1. <ins>Let _mo_ be InstantiateModuleDeclaration of _m_.</ins>
             1. <ins>Perform ! _env_.InitializeBinding(_mn_, _mo_).</ins>
         1. For each Parse Node _f_ of _functionsToInitialize_, do
           1. Let _fn_ be the sole element of the BoundNames of _f_.
@@ -398,20 +532,446 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
     <emu-clause id="sec-module-semantics">
       <h1>Module Semantics</h1>
 
-      <emu-clause id="sec-module-semantics-static-semantics-early-errors" number="1">
-        <h1>Static Semantics: Early Errors</h1>
-        <emu-grammar><ins>Module : ModuleBody</ins></emu-grammar>
-        <ul>
-          <li>
-            <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ModuleBody| with argument a new empty List is *true*.</ins>
-          </li>
-        </ul>
+      <emu-clause id="sec-static-semantics-modulerequests" type="sdo" number="3">
+        <h1>Static Semantics: ModuleRequests ( ): a List of Strings</h1>
+        <dl class="header">
+        </dl>
+        <emu-grammar>ModuleSpecifier : StringLiteral</emu-grammar>
+        <emu-alg>
+          1. Return a List whose sole element is the <del>SV of |StringLiteral|</del><ins>ModuleSpecifier Record { [[Name]]: the SV of |StringLiteral|, [[Type]]: ~external~ }</ins>.
+        </emu-alg>
+        <emu-grammar>
+          <ins>ModuleSpecifier : Identifier</ins>
+        </emu-grammar>
+        <emu-alg>
+          1. <ins>Return a List whose sole element is the ModuleSpecifier Record { [[Name]]: the StringValue of |Identifier|, [[Type]]: ~internal~ }</ins>.
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-cyclic-module-records" number="5">
+        <h1>Cyclic Module Records</h1>
+
+        <p>In addition to the fields defined in <emu-xref href="#table-module-record-fields"></emu-xref> Cyclic Module Records have the additional fields listed in <emu-xref href="#table-cyclic-module-fields"></emu-xref></p>
+        <emu-table id="table-cyclic-module-fields" caption="Additional Fields of Cyclic Module Records">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                [[Status]]
+              </td>
+              <td>
+                ~new~, ~unlinked~, ~linking~, ~linked~, ~evaluating~, ~evaluating-async~, or ~evaluated~
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[EvaluationError]]
+              </td>
+              <td>
+                a throw completion or ~empty~
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[DFSIndex]]
+              </td>
+              <td>
+                an integer or ~empty~
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[DFSAncestorIndex]]
+              </td>
+              <td>
+                an integer or ~empty~
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[RequestedModules]]
+              </td>
+              <td>
+                a List of <del>Strings</del><ins>ModuleSpecifier Records</ins>
+              </td>
+              <td>
+                A List of <ins>Records representing</ins> all the |ModuleSpecifier| strings <ins>or identifiers</ins> used by the module represented by this record to request the importation of a module. The List is in source text occurrence order.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[LoadedModules]]
+              </td>
+              <td>
+                a List of Records with fields [[Specifier]] (a <del>String</del><ins>ModuleSpecifier Record</ins>) and [[Module]] (a Module Record)
+              </td>
+              <td>
+                A map from the specifier strings used by the module represented by this record to request the importation of a module to the resolved Module Record. The list does not contain two different Records with the same [[Specifier]].
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[CycleRoot]]
+              </td>
+              <td>
+                a Cyclic Module Record or ~empty~
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[HasTLA]]
+              </td>
+              <td>
+                a Boolean
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[AsyncEvaluation]]
+              </td>
+              <td>
+                a Boolean
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[TopLevelCapability]]
+              </td>
+              <td>
+                a PromiseCapability Record or ~empty~
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[AsyncParentModules]]
+              </td>
+              <td>
+                a List of Cyclic Module Records
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[PendingAsyncDependencies]]
+              </td>
+              <td>
+                an integer or ~empty~
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </emu-table>
+        <p>In addition to the methods defined in <emu-xref href="#table-abstract-methods-of-module-records"></emu-xref> Cyclic Module Records have the additional methods listed in <emu-xref href="#table-cyclic-module-methods"></emu-xref></p>
+        <emu-table id="table-cyclic-module-methods" caption="Additional Abstract Methods of Cyclic Module Records">
+          <table>
+            <tr>
+              <th>
+                Method
+              </th>
+              <th>
+                Purpose
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <ins>LoadInternalModule( _name_ )</ins>
+              </td>
+              <td>
+                <p><ins>Loads the internal module with the given name and returns the resulting Module Record, or throws if it does not exist.</ins></p>
+
+                <p><ins>Unless otherwise specified, the default implementation of this method is:</ins></p>
+                <emu-alg>
+                  1. <ins>Throw a *TypeError* exception.</ins>
+                </emu-alg>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                InitializeEnvironment()
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                ExecuteModule( [ _promiseCapability_ ] )
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </emu-table>
+
+        <p><ins>A <dfn id="modulespecifier-record" variants="ModuleSpecifier Records">ModuleSpecifier Record</dfn> represents the requet to import a module. Each ModuleSpecifier Record has the fields defined in <emu-xref href="#table-modulespecifier-record-fields"></emu-xref>:</ins></p>
+        <emu-table id="table-modulespecifier-record-fields" caption="ModuleSpecifier Record Fields">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[Name]]</ins>
+              </td>
+              <td>
+                <ins>a String</ins>
+              </td>
+              <td>
+                <ins>The name of the imported module. For example, it's the string `"foo"` in `import "foo";`</ins>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[Type]]</ins>
+              </td>
+              <td>
+                <ins>~internal~ or ~external~</ins>
+              </td>
+              <td>
+                <ins>Whether the module is an internal module, that should be loaded with the LoadInternalModule abstract method of Cyclic Module Records, or an external module, that should be loaded using the HostLoadImportedModule abstract operation.</ins>
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+
+        <emu-clause id="sec-LoadRequestedModules" type="concrete method">
+          <h1>
+            LoadRequestedModules (
+              optional _hostDefined_: anything
+            ): a Promise object
+          </h1>
+          <dl class="header">
+            <dt>for</dt>
+            <dd>Cyclic Module Record</dd>
+          </dl>
+
+          <emu-clause id="sec-InnerModuleLoading" type="abstract operation">
+            <h1>
+              InnerModuleLoading (
+                _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                _module_: a Module Record,
+              ): ~unused~
+            </h1>
+            <dl class="header">
+              <dt>description</dt>
+              <dd>It is used by LoadRequestedModules to recursively perform the actual loading process for _module_'s dependency graph.</dd>
+            </dl>
+
+            <emu-alg>
+              1. Assert: _state_.[[IsLoading]] is *true*.
+              1. If _module_ is a Cyclic Module Record, _module_.[[Status]] is ~new~, and _state_.[[Visited]] does not contain _module_, then
+                1. Append _module_ to _state_.[[Visited]].
+                1. Let _requestedModulesCount_ be the length of _module_.[[RequestedModules]].
+                1. Set _state_.[[PendingModules]] to _state_.[[PendingModules]] + _requestedModulesCount_.
+                1. For each ModuleSpecifier Record _required_ of _module_.[[RequestedModules]], do
+                  1. If _state_.[[IsLoading]] is *true*, then
+                    1. If _module_.[[LoadedModules]] contains a Record _record_ such that _record_.[[Specifier]] is _required_, then
+                      1. Perform InnerModuleLoading(_state_, _record_.[[Module]]).
+                    1. <ins>Else if _required_.[[Type]] is ~internal~, then</ins>
+                      1. <ins>Let _completion_ be Completion(_module_.LoadInternalModule(_required_.[[Name]])).</ins>
+                      1. <ins>Assert: If _module_ is a Source Text Module Record, then _completion_ is a normal completion.</ins>
+                      1. <ins>If _completion_ is a normal completion, append Record { [[Specifier]]: _required_, [[Module]]: _completion_.[[Value]] } to _module_.[[LoadedModules]].</ins>
+                      1. <ins>Perform ContinueModuleLoading(_state_, _completion_).</ins>
+                    1. Else,
+                      1. <ins>Assert: _required_.[[Type]] is ~external~.</ins>
+                      1. Perform HostLoadImportedModule(_module_, <del>_required_</del><ins>_required_.[[Name]]</ins>, _state_.[[HostDefined]], _state_).
+                      1. NOTE: HostLoadImportedModule will call ContinueModuleLoading.
+              1. Assert: _state_.[[PendingModules]] &ge; 1.
+              1. Set _state_.[[PendingModules]] to _state_.[[PendingModules]] - 1.
+              1. If _state_.[[PendingModules]] = 0, then
+                1. Set _state_.[[IsLoading]] to *false*.
+                1. For each Cyclic Module Record _loaded_ in _state_.[[Visited]], do
+                  1. If _loaded_.[[Status]] is ~new~, set _loaded_.[[Status]] to ~unlinked~.
+                1. Perform ! Call(_state_.[[PromiseCapability]].[[Resolve]], *undefined*, &laquo; *undefined* &raquo;).
+            </emu-alg>
+          </emu-clause>
+        </emu-clause>
       </emu-clause>
 
       <emu-clause id="sec-source-text-module-records" number="6">
         <h1>Source Text Module Records</h1>
 
+        <p>In addition to the fields defined in <emu-xref href="#table-cyclic-module-fields"></emu-xref>, Source Text Module Records have the additional fields listed in <emu-xref href="#table-additional-fields-of-source-text-module-records"></emu-xref>. Each of these fields is initially set in ParseModule.</p>
+        <emu-table id="table-additional-fields-of-source-text-module-records" caption="Additional Fields of Source Text Module Records" oldids="table-38">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                [[ECMAScriptCode]]
+              </td>
+              <td>
+                a Parse Node
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[Context]]
+              </td>
+              <td>
+                an ECMAScript execution context
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[ImportMeta]]
+              </td>
+              <td>
+                an Object
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[ImportEntries]]
+              </td>
+              <td>
+                a List of ImportEntry Records
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[LocalExportEntries]]
+              </td>
+              <td>
+                a List of ExportEntry Records
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[IndirectExportEntries]]
+              </td>
+              <td>
+                a List of ExportEntry Records
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                [[StarExportEntries]]
+              </td>
+              <td>
+                a List of ExportEntry Records
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[VisibleModuleDeclarations]]</ins>
+              </td>
+              <td>
+                <ins>a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)</ins>
+              </td>
+              <td>
+                <ins>All the |ModuleDeclaration| declarations that are accessible from this module, either defined in this module or in a parent module. It does not contain two different records with the same [[Name]].</ins>
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+
         <p>The following definitions specify the required concrete methods and other abstract operations for Source Text Module Records</p>
+
+        <emu-clause id="sec-parsemodule" type="abstract operation" number="1">
+          <h1>
+            ParseModule (
+              _sourceText_: ECMAScript source text,
+              _realm_: a Realm Record,
+              _hostDefined_: anything,
+              optional _outerModuleDeclarations_: a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)
+            ): a Source Text Module Record or a non-empty List of *SyntaxError* objects
+          </h1>
+          <dl class="header">
+            <dt>description</dt>
+            <dd>It creates a Source Text Module Record based upon the result of parsing _sourceText_ as a |Module|.</dd>
+          </dl>
+          <emu-alg>
+            1. Let _body_ be ParseText(_sourceText_, |Module|).
+            1. If _body_ is a List of errors, return _body_.
+            1. <ins>Let _outerModuleDeclarationNames_ be a new empty List.</ins>
+            1. <ins>If _outerModuleDeclarations_ is present, then</ins>
+              1. <ins>For each Record _decl_ in _outerModuleDeclarations_, do</ins>
+                1. <ins>Append _decl_.[[Name]] to _outerModuleDeclarationNames_.</ins>
+            1. <ins>If ContainsUndefinedModuleReference of _body_ with argument _outerModuleDeclarationNames_ is *true*, return &laquo; a new *TypeError* &raquo;.</ins>
+            1. Let _requestedModules_ be the ModuleRequests of _body_.
+            1. Let _importEntries_ be ImportEntries of _body_.
+            1. Let _importedBoundNames_ be ImportedLocalNames(_importEntries_).
+            1. Let _indirectExportEntries_ be a new empty List.
+            1. Let _localExportEntries_ be a new empty List.
+            1. Let _starExportEntries_ be a new empty List.
+            1. Let _exportEntries_ be ExportEntries of _body_.
+            1. For each ExportEntry Record _ee_ of _exportEntries_, do
+              1. If _ee_.[[ModuleRequest]] is *null*, then
+                1. If _ee_.[[LocalName]] is not an element of _importedBoundNames_, then
+                  1. Append _ee_ to _localExportEntries_.
+                1. Else,
+                  1. Let _ie_ be the element of _importEntries_ whose [[LocalName]] is the same as _ee_.[[LocalName]].
+                  1. If _ie_.[[ImportName]] is ~namespace-object~, then
+                    1. NOTE: This is a re-export of an imported module namespace object.
+                    1. Append _ee_ to _localExportEntries_.
+                  1. Else,
+                    1. NOTE: This is a re-export of a single name.
+                    1. Append the ExportEntry Record { [[ModuleRequest]]: _ie_.[[ModuleRequest]], [[ImportName]]: _ie_.[[ImportName]], [[LocalName]]: *null*, [[ExportName]]: _ee_.[[ExportName]] } to _indirectExportEntries_.
+              1. Else if _ee_.[[ImportName]] is ~all-but-default~, then
+                1. Assert: _ee_.[[ExportName]] is *null*.
+                1. Append _ee_ to _starExportEntries_.
+              1. Else,
+                1. Append _ee_ to _indirectExportEntries_.
+            1. Let _async_ be _body_ Contains `await`.
+            1. <ins>Let _visibleModuleDeclarations_ be a new empty List.</ins>
+            1. <ins>Let _rawModuleDeclarations_ be the RawModuleDeclarations of _body_.</ins>
+            1. <ins>For each Record _rawDecl_ of _rawModuleDeclarations_, do</ins>
+              1. <ins>Append the Record { [[Name]]: _rawDecl_.[[Name]], [[Module]]: ~empty~ } to _visibleModuleDeclarations_.</ins>
+              1. <ins>NOTE: The [[Module]] field of this Record will be set to a Module Record before the end of this ParseModule operation. The ~empty~ value is never observable outside of ParseModule.</ins>
+            1. <ins>If _outerModuleDeclarations_ is present, then</ins>
+              1. <ins>For each Record _m_ of _outerModuleDeclarations_, do</ins>
+                1. <ins>If _visibleModuleDeclarations_ does not contain a Record with [[Name]] equal to _m_.[[Name]], then</ins>
+                  1. <ins>Append _m_ to _visibleModuleDeclarations_.</ins>
+              1. <ins>TODO: Instead of copying all of them, we could just add the declarations that are imported inside this module. This would simplify structured cloning, since we wouldn't need to clone all the visible modules.</ins>
+            1. <ins>For each Record _rawDecl_ of _rawModuleDeclarations_, do</ins>
+              1. <ins>Let _rec_ be the Record in _visibleModuleDeclarations_ with [[Name]] equal to _rawDecl_.[[Name]].</ins>
+              1. <ins>Assert: _rec_ exists and is unique.</ins>
+              1. <ins>Let _moduleRecord_ be ParseModule(_rawDecl_.[[Body]], _realm_, _hostDefined_, _visibleModuleDeclarations_).</ins>
+              1. <ins>Assert: _moduleRecord_ is a Module Record, because parsing errors would have been reported while parsing the outer module.</ins>
+              1. <ins>Set _rec_.[[Module]] to _moduleRecord_.</ins>
+            1. Return Source Text Module Record { [[Realm]]: _realm_, [[Environment]]: ~empty~, [[Namespace]]: ~empty~, [[CycleRoot]]: ~empty~, [[HasTLA]]: _async_, [[AsyncEvaluation]]: *false*, [[TopLevelCapability]]: ~empty~, [[AsyncParentModules]]: &laquo; &raquo;, [[PendingAsyncDependencies]]: ~empty~, [[Status]]: ~new~, [[EvaluationError]]: ~empty~, [[HostDefined]]: _hostDefined_, [[ECMAScriptCode]]: _body_, [[Context]]: ~empty~, [[ImportMeta]]: ~empty~, [[RequestedModules]]: _requestedModules_, [[LoadedModules]]: a new empty List, <ins>[[VisibleModuleDeclarations]]: _visibleModuleDeclarations_,</ins> [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[DFSIndex]]: ~empty~, [[DFSAncestorIndex]]: ~empty~ }.
+          </emu-alg>
+        </emu-clause>
 
         <emu-clause id="sec-source-text-module-record-initialize-environment" type="concrete method" number="4">
           <h1>InitializeEnvironment ( ): either a normal completion containing ~unused~ or a throw completion</h1>
@@ -431,7 +991,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             1. Let _env_ be NewModuleEnvironment(_realm_.[[GlobalEnv]]).
             1. Set _module_.[[Environment]] to _env_.
             1. For each ImportEntry Record _in_ of _module_.[[ImportEntries]], do
-              1. Let _importedModule_ be GetImportedModule(_module_, _in_.[[ModuleRequest]]).
+              1. Let _importedModule_ be GetImportedModule(_module_, _in_.[[ModuleSpecifier]]).
               1. Assert: _importedModule_ is not ~empty~, because imported module requests are a subset of _module_.[[RequestedModules]], and these have been resolved earlier in this algorithm.
               1. If _in_.[[ImportName]] is ~namespace-object~, then
                 1. Let _namespace_ be ? GetModuleNamespace(_importedModule_).
@@ -477,12 +1037,59 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                   1. Let _fo_ be InstantiateFunctionObject of _d_ with arguments _env_ and _privateEnv_.
                   1. Perform ! _env_.InitializeBinding(_dn_, _fo_).
                 1. <ins>Else if _d_ is a |ModuleDeclaration|, then</ins>
-                  1. <ins>Let _mo_ be InstantiateModuleObject of _d_.</ins>
+                  1. <ins>Let _mo_ be InstantiateModuleDeclaration of _d_.</ins>
                   1. <ins>Perform ! _env_.InitializeBinding(_dn_, _mo_).</ins>
             1. Remove _moduleContext_ from the execution context stack.
             1. Return ~unused~.
           </emu-alg>
         </emu-clause>
+
+        <emu-clause id="sec-source-text-module-record-execute-module" type="concrete method" number="6">
+          <h1>
+            <ins>
+              LoadInternalModule (
+                _name_: a String,
+              ): a normal completion containing a Module Record
+            </ins>
+          </h1>
+          <dl class="header">
+            <dt>for</dt>
+            <dd>a Source Text Module Record _module_</dd>
+          </dl>
+
+          <emu-alg>
+            1. Assert: _module_.[[VisibleModuleDeclarations]] contains a Record with [[Name]] equal to _name_.
+            1. For each Record _r_ of _module_.[[VisibleModuleDeclarations]], do
+              1. If _r_.[[Name]] is equal to _name_, then
+                1. Return _r_.[[Module]].
+          </emu-alg>
+        </emu-clause>
+      </emu-clause>
+
+      <emu-clause id="sec-FinishLoadingImportedModule" type="abstract operation" number="8">
+        <h1>
+          FinishLoadingImportedModule (
+            _referrer_: a Script Record, a Cyclic Module Record, or a Realm Record,
+            _specifier_: a String,
+            _state_: a ModuleLoadState Record,
+            _result_: either a normal completion containing a Module Record or a throw completion,
+          ): ~unused~
+        </h1>
+        <dl class="header">
+          <dt>description</dt>
+          <dd></dd>
+        </dl>
+        <emu-alg>
+          1. If _result_ is a normal completion, then
+            1. <ins>Let _specifierRecord_ be the ModuleSpecifier Record { [[Name]]: _specifier_, [[Type]]: ~external~ }.</ins>
+            1. If _referrer_.[[LoadedModules]] contains a Record _record_ such that _record_.[[Specifier]] is <del>_specifier_</del><ins>_specifierRecord_</ins>, then
+              1. Assert: _record_.[[Module]] is _result_.[[Value]].
+            1. Else, append the Record { [[Specifier]]: <del>_specifier_</del><ins>_specifierRecord_</ins>, [[Module]]: _result_.[[Value]] } to _referrer_.[[LoadedModules]].
+          1. If _state_.[[Action]] is ~graph-loading~, then
+            1. Perform ContinueModuleLoading(_state_, _result_).
+          1. Else,
+            1. Perform ContinueDynamicImport(_state_, _result_).
+        </emu-alg>
       </emu-clause>
     </emu-clause>
 
