@@ -548,6 +548,66 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
         </emu-alg>
       </emu-clause>
 
+      <emu-clause id="sec-abstract-module-records">
+        <h1>Abstract Module Records</h1>
+
+        <emu-table id="table-abstract-methods-of-module-records" caption="Abstract Methods of Module Records" oldids="table-37">
+          <table>
+            <tr>
+              <th>
+                Method
+              </th>
+              <th>
+                Purpose
+              </th>
+            </tr>
+            <tr>
+              <td>
+                GetExportedNames([_exportStarSet_])
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                ResolveExport(_exportName_ [, _resolveSet_])
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                <ins>GetExportedModule(_name_)</ins>
+              </td>
+              <td>
+                <p><ins>Return the Module Record for the module exported by this module as _name_. If this module is a Cyclic Module Record, it can also return an ImportedModule Record representing a potential module which has been re-exported by a transitive dependency. It throws an error if there is no potential module export corresponding to _name_.</ins></p>
+
+                <p><ins>Unless otherwise specified, the default implementation of this method is:</ins></p>
+                <emu-alg>
+                  1. <ins>Throw a *TypeError* exception.</ins>
+                </emu-alg>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                LoadRequestedModules( [ _hostDefined_ ] )
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                Link()
+              </td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>
+                Evaluate()
+              </td>
+              <td></td>
+            </tr>
+          </table>
+        </emu-table>
+      </emu-clause>
+
       <emu-clause id="sec-cyclic-module-records" number="5">
         <h1>Cyclic Module Records</h1>
 
@@ -695,7 +755,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                 <ins>LoadInternalModule( _name_ )</ins>
               </td>
               <td>
-                <p><ins>Loads the internal module with the given name and returns the resulting Module Record, or throws if it does not exist.</ins></p>
+                <p><ins>Loads the internal module with the given name and returns a Module Record or, if the internal module could be imported from another module, an ImportedModule Record. It throws if an internal module named _name_ does ot exist.</ins></p>
 
                 <p><ins>Unless otherwise specified, the default implementation of this method is:</ins></p>
                 <emu-alg>
@@ -751,11 +811,257 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                 <ins>~internal~ or ~external~</ins>
               </td>
               <td>
-                <ins>Whether the module is an internal module, that should be loaded with the LoadInternalModule abstract method of Cyclic Module Records, or an external module, that should be loaded using the HostLoadImportedModule abstract operation.</ins>
+                <ins>Whether the module is an internal module, that should be declared nested inside another module, or an external module, that should be loaded using the HostLoadImportedModule abstract operation.</ins>
               </td>
             </tr>
           </table>
         </emu-table>
+
+        <p><ins>An <dfn id="importedmodule-record" variants="ImportedModule Records">ImportedModule Record</dfn> represents a module which is imported from another module. Each ImportedModule Record has the fields defined in <emu-xref href="#table-importedmodule-record-fields"></emu-xref>:</ins></p>
+        <emu-table id="table-importedmodule-record-fields" caption="ImportedModule Record Fields">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[Specifier]]</ins>
+              </td>
+              <td>
+                <ins>a ModuleSpecifier Record</ins>
+              </td>
+              <td>
+                <ins>The specifier of the module this module is imported from.</ins>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[ImportName]]</ins>
+              </td>
+              <td>
+                <ins>a String</ins>
+              </td>
+              <td>
+                <ins>The name of the imported module.</ins>
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+
+        <p>A <dfn id="moduleloadstate-record" variants="ModuleLoadState Records">ModuleLoadState Record</dfn> is a Record that contains information about the loading process of a module graph. It's used to continue loading after a call to HostLoadImportedModule. Each ModuleLoadState Record has the fields defined in <emu-xref href="#table-moduleloadstate-record-fields"></emu-xref>:</p>
+        <emu-table id="table-moduleloadstate-record-fields" caption="ModuleLoadState Record Fields">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                [[Action]]
+              </td>
+              <td>
+                ~graph-loading~ or ~dynamic-import~
+              </td>
+              <td>
+                The action that caused the call to HostLoadImportedModule. It is ~graph-loading~ when loading the dependencies of a module; it is ~dynamic-import~ when loading a module that was requested by an `import()` call.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[PromiseCapability]]
+              </td>
+              <td>
+                a PromiseCapability Record
+              </td>
+              <td>
+                The promise to resolve when the loading process finishes.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[IsLoading]]
+              </td>
+              <td>
+                a Boolean
+              </td>
+              <td>
+                This field is only used if [[Action]] is ~graph-loading~. It is true if the loading process has not finished yet, neither successfully nor with an error.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[PendingModules]]
+              </td>
+              <td>
+                a non-negative integer
+              </td>
+              <td>
+                This field is only used if [[Action]] is ~graph-loading~. It tracks the number of pending HostLoadImportedModule calls.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[Visited]]
+              </td>
+              <td>
+                a List of Cyclic Module Records
+              </td>
+              <td>
+                This field is only used if [[Action]] is ~graph-loading~. It is a list of the Cyclic Module Records that have been already loaded by the current loading process, to avoid infinite loops with circular dependencies.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[BlockedInternalImports]]</ins>
+              </td>
+              <td>
+                <ins>a List of BlockedInternalImport Records</ins>
+              </td>
+              <td>
+                <p><ins>The imports that cannot be loaded yet, because they import from an internal module which is itself imported from a module which hasn't been loaded yet.</ins></p>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[HostDefined]]
+              </td>
+              <td>
+                anything (default value is *undefined*)
+              </td>
+              <td>
+                It contains host-defined data to pass from the LoadRequestedModules caller to HostLoadImportedModule.
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+
+        <p><ins>A <dfn id="blockedinternalimport-record" variants="BlockedInternalImport Records">BlockedInternalImport Record</dfn> represents an import from an internal module that cannot be handled, because the internal module is imported from another module that hasn't been loaded yet. Each BlockedInternalImport Record has the fields defined in <emu-xref href="#table-blockedinternalimport-record-fields"></emu-xref>:</ins></p>
+        <emu-table id="table-blockedinternalimport-record-fields" caption="BlockedInternalImport Record Fields">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[BlockerReferrer]]</ins>
+              </td>
+              <td>
+                <ins>a Module Record</ins>
+              </td>
+              <td rowspan="2">
+                <ins>[[BlockerReferrer]] and [[BlockerSpecifier]] together indicate the module that is currently preventing the internal module from being imported.</ins>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[BlockedSpecifier]]</ins>
+              </td>
+              <td>
+                <ins>a ModuleSpecifier Record</ins>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[ImportName]]</ins>
+              </td>
+              <td>
+                <ins>a String</ins>
+              </td>
+              <td>
+                <ins>It is the name of the expected module exported by ([[BlockerReferrer]], [[BlockerSpecifier]]).</ins>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[BlockedReferrer]]</ins>
+              </td>
+              <td>
+                <ins>a Cyclic Module Record</ins>
+              </td>
+              <td>
+                <ins>It is the module that is currently blocked from importing the internal module.</ins>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>[[LocalName]]</ins>
+              </td>
+              <td>
+                <ins>a String</ins>
+              </td>
+              <td>
+                <ins>It is the local alias, in [[BlockedReferrer]], of the imported module.</ins>
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+
+        <p><ins>To better understand the contents of BlockedInternalImport Records, consider the three modules defined in <emu-xref href="#table-blockedinternalimport-example"></emu-xref>:</ins></p>
+        <emu-table id="table-blockedinternalimport-example" caption="BlockedInternalImport Record Example">
+          <table>
+            <tr>
+              <th>
+                Module
+              </th>
+              <th>
+                Source
+              </th>
+            </tr>
+            <tr>
+              <td>
+                <ins>_A_</ins>
+              </td>
+              <td>
+                <pre><code class="javascript">import { mod as module } from "B";</code><code class="javascript">import { value } from module;</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>_B_</ins>
+              </td>
+              <td>
+                <pre><code class="javascript">export { myModule as mod } from "C";</code></pre>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <ins>_C_</ins>
+              </td>
+              <td>
+                <pre><code class="javascript">export module myModule {</code><code class="javascript" style="padding-left:4ex">export const value = 1;</code><code class="javascript">}</code></pre>
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+
+        <p><ins>Assume that the loading process of external modules is asynchronous. When loading the dependencies of _A_, <code>module</code> cannot be resolved yet and it will be represented by the BlockedInternalImport Record { [[BlockerReferrer]]: _A_, [[BlockerSpecifier]]: the ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: "B" }, [[ImportName]]: <code>"mod"</code>, [[BlockedReferrer]]: _A_,[[LocalName]]: <code>"module"</code> }.</ins></p>
+
+        <p><ins>When _B_ is loaded, <code>module</code> cannot be imported yet, because <code>mod</code> is not defined in _B_ but in one of its dependencies: the above BlockedInternalImport Record will be replaced by the BlockedInternalImport Record { [[BlockerReferrer]]: _B_, [[BlockerSpecifier]]: the ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: "C" }, [[ImportName]]: <code>"myModule"</code>, [[BlockedReferrer]]: _A_, [[LocalName]]: <code>"module"</code> }.</ins></p>
+
+        <p><ins>Finally, after _C_ has finished loading, it's possible to load the <code>module</code> internal module. This logic is handled in the below InnerModuleLoading and ProcessBlockedInternalRequests algorithms.</ins></p>
 
         <emu-clause id="sec-LoadRequestedModules" type="concrete method">
           <h1>
@@ -773,6 +1079,8 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
               InnerModuleLoading (
                 _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
                 _module_: a Module Record,
+                <ins>optional _referrer_: a Cyclic Module Record,</ins>
+                <ins>optional _specifier_: a ModuleSpecifier Record,</ins>
               ): ~unused~
             </h1>
             <dl class="header">
@@ -782,23 +1090,34 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 
             <emu-alg>
               1. Assert: _state_.[[IsLoading]] is *true*.
+              1. <ins>If _referrer_ has been provided, then</ins>
+                1. <ins>Assert: _specifier_ has been provided.</ins>
+                1. <ins>Perform ProcessBlockedInternalRequests(_state_, _referrer_, _specifier_, _module_).</ins>
+                1. <ins>If _state_.[[IsLoading]] is *false*, return.</ins>
               1. If _module_ is a Cyclic Module Record, _module_.[[Status]] is ~new~, and _state_.[[Visited]] does not contain _module_, then
                 1. Append _module_ to _state_.[[Visited]].
                 1. Let _requestedModulesCount_ be the length of _module_.[[RequestedModules]].
                 1. Set _state_.[[PendingModules]] to _state_.[[PendingModules]] + _requestedModulesCount_.
                 1. For each ModuleSpecifier Record _required_ of _module_.[[RequestedModules]], do
-                  1. If _state_.[[IsLoading]] is *true*, then
-                    1. If _module_.[[LoadedModules]] contains a Record _record_ such that _record_.[[Specifier]] is _required_, then
-                      1. Perform InnerModuleLoading(_state_, _record_.[[Module]]).
-                    1. <ins>Else if _required_.[[Type]] is ~internal~, then</ins>
-                      1. <ins>Let _completion_ be Completion(_module_.LoadInternalModule(_required_.[[Name]])).</ins>
-                      1. <ins>Assert: If _module_ is a Source Text Module Record, then _completion_ is a normal completion.</ins>
-                      1. <ins>If _completion_ is a normal completion, append Record { [[Specifier]]: _required_, [[Module]]: _completion_.[[Value]] } to _module_.[[LoadedModules]].</ins>
-                      1. <ins>Perform ContinueModuleLoading(_state_, _completion_).</ins>
-                    1. Else,
-                      1. <ins>Assert: _required_.[[Type]] is ~external~.</ins>
-                      1. Perform HostLoadImportedModule(_module_, <del>_required_</del><ins>_required_.[[Name]]</ins>, _state_.[[HostDefined]], _state_).
-                      1. NOTE: HostLoadImportedModule will call ContinueModuleLoading.
+                  1. <del>If _state_.[[IsLoading]] is *true*, then:</del>
+                  1. If _module_.[[LoadedModules]] contains a Record _record_ such that _record_.[[Specifier]] is _required_, then
+                    1. Perform InnerModuleLoading(_state_, _record_.[[Module]], <ins>_module_, _required_</ins>).
+                  1. <ins>Else if _required_.[[Type]] is ~internal~, then</ins>
+                    1. <ins>Let _internalCompletion_ be Completion(_module_.LoadInternalModule(_required_.[[Name]])).</ins>
+                    1. <ins>If AbortModuleLoading(_state_, _internalCompletion_) is *true*, return.</ins>
+                    1. <ins>Let _internal_ be _internalCompletion_.[[Value]].</ins>
+                    1. <ins>If _internal_ is a Module Record, then</ins>
+                      1. <ins>Append Record { [[Specifier]]: _required_, [[Module]]: _internal_ } to _module_.[[LoadedModules]].</ins>
+                      1. <ins>Perform InnerModuleLoading(_state_, _internal_, _module_, _required_).</ins>
+                    1. <ins>Else,</ins>
+                      1. <ins>Assert: _internal_ is an ImportedModule Record.</ins>
+                      1. <ins>Append the Record { [[BlockerReferrer]]: _module_, [[BlockerSpecifier]]: _internal_.[[Specifier]], [[ImportName]]: _internal_.[[ImportName]], [[BlockedReferrer]]: _module_, [[LocalName]]: _required_.[[Name]] } to _state_.[[BlockedInternalImports]].</ins>
+                  1. Else,
+                    1. <ins>Assert: _required_.[[Type]] is ~external~.</ins>
+                    1. Perform HostLoadImportedModule(_module_, <del>_required_</del><ins>_required_.[[Name]]</ins>, _state_.[[HostDefined]], _state_).
+                    1. NOTE: HostLoadImportedModule will call ContinueModuleLoading.
+                  1. <ins>If _state_.[[IsLoading]] is *false*, return.</ins>
+              1. <del>If _state_.[[IsLoading]] is *false*, return.</del>
               1. Assert: _state_.[[PendingModules]] &ge; 1.
               1. Set _state_.[[PendingModules]] to _state_.[[PendingModules]] - 1.
               1. If _state_.[[PendingModules]] = 0, then
@@ -806,6 +1125,93 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                 1. For each Cyclic Module Record _loaded_ in _state_.[[Visited]], do
                   1. If _loaded_.[[Status]] is ~new~, set _loaded_.[[Status]] to ~unlinked~.
                 1. Perform ! Call(_state_.[[PromiseCapability]].[[Resolve]], *undefined*, &laquo; *undefined* &raquo;).
+            </emu-alg>
+          </emu-clause>
+
+          <emu-clause id="sec-ContinueModuleLoading" type="abstract operation">
+            <h1>
+              ContinueModuleLoading (
+                _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                <ins>_referrer_: a Cyclic Module Record,</ins>
+                <ins>_specifier_: a ModuleSpecifier Record,</ins>
+                _moduleCompletion_: either a normal completion containing a Module Record or a throw completion,
+              ): ~unused~
+            </h1>
+            <dl class="header">
+              <dt>description</dt>
+              <dd>It is used to re-enter the loading process after a call to HostLoadImportedModule.</dd>
+            </dl>
+
+            <emu-alg>
+              1. If _state_.[[IsLoading]] is *false*, return.
+              1. <ins>If AbortModuleLoading(_state_, _moduleCompletion_) is *true*, return.</ins>
+              1. <ins>Assert: _moduleCompletion_ is a normal completion.</ins>
+              1. <del>If _moduleCompletion_ is a normal completion, then:</del>
+              1. Perform InnerModuleLoading(_state_, _moduleCompletion_.[[Value]], <ins>_referrer_, _specifier_</ins>).
+              1. <del>Else,</del>
+                1. <del>Set _state_.[[IsLoading]] to *false*.</del>
+                1. <del>Perform ! Call(_state_.[[PromiseCapability]].[[Reject]], *undefined*, &laquo; _moduleCompletion_.[[Value]] &raquo;).</del>
+              1. Return ~unused~.
+            </emu-alg>
+          </emu-clause>
+
+          <emu-clause id="sec-ProcessBlockedInternalRequests" type="abstract operation">
+            <h1>
+              <ins>
+                ProcessBlockedInternalRequests (
+                  _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                  _referrer_: a Cyclic Module Record,
+                  _specifier_: a ModuleSpecifier Record,
+                  _module_: a Module Record,
+                ): ~unused~
+              </ins>
+            </h1>
+            <dl class="header">
+              <dt>description</dt>
+              <dd></dd>
+            </dl>
+
+            <emu-alg>
+              1. For each Record _dep_ of _state_.[[BlockedInternalImports]] such that _dep_.[[BlockerReferrer]] is _referrer_ and _dep_.[[BlockerSpecifier]] is _specifier_, do
+                1. Let _exportedCompletion_ be Completion(_module_.GetExportedModule(_dep_.[[ImportName]])).
+                1. If AbortModuleLoading(_state_, _exportedCompletion_) is *true*, return.
+                1. Assert: _exportedCompletion_ is a normal completion.
+                1. Let _exported_ be _exportedCompletion_.[[Value]].
+                1. If _exported_ is a Module Record, then
+                  1. Let _internalSpecifier_ be the ModuleSpecifier Record { [[Type]]: ~internal~, [[Name]]: _dep_.[[LocalName]] }.
+                  1. Append the Record { [[Specifier]]: _internalSpecifier_, [[Module]]: _exported_ } to _dep_.[[BlockedReferrer]].[[LoadedModules]].
+                  1. Perform InnerModuleLoading(_state_, _exported_, _module_, _internalSpecifier_).
+                  1. If _state_.[[IsLoading]] is *false*, return.
+                1. Else,
+                  1. Assert: _exported_ is an ImportedModule Record.
+                  1. Remove _dep_ from _state_.[[BlockedInternalImports]].
+                  1. Append the Record { [[BlockerReferrer]]: _module_, [[BlockerSpecifier]]: _exported_.[[Specifier]], [[ImportName]]: _exported_.[[ImportName]], [[BlockedReferrer]]: _dep_.[[BlockedReferrer]], [[LocalName]]: _dep_.[[LocalName]] } to _state_.[[BlockedInternalImports]].
+            </emu-alg>
+
+            <emu-note type="editor">
+              TODO: Handle import cycles.
+            </emu-note>
+          </emu-clause>
+
+          <emu-clause id="sec-AbortModuleLoading" type="abstract operation">
+            <h1>
+              <ins>
+                AbortModuleLoading (
+                  _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                  _completion_: a normal completion or a throw completion,
+                ): a Boolean
+              </ins>
+            </h1>
+            <dl class="header">
+              <dt>description</dt>
+              <dd></dd>
+            </dl>
+
+            <emu-alg>
+              1. If _completion_ is a normal completion, return *false*.
+              1. Set _state_.[[IsLoading]] to *false*.
+              1. Perform ! Call(_state_.[[PromiseCapability]].[[Reject]], *undefined*, &laquo; _completion_.[[Value]] &raquo;).
+              1. Return *true*.
             </emu-alg>
           </emu-clause>
         </emu-clause>
@@ -1049,7 +1455,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             <ins>
               LoadInternalModule (
                 _name_: a String,
-              ): a normal completion containing a Module Record
+              ): a normal completion containing a Module Record or a ImportedModule Record, or a throw completion
             </ins>
           </h1>
           <dl class="header">
@@ -1058,10 +1464,47 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           </dl>
 
           <emu-alg>
-            1. Assert: _module_.[[VisibleModuleDeclarations]] contains a Record with [[Name]] equal to _name_.
+            1. For each ImportEntry Record _entry_ of _module_.[[ImportEntries]], do
+              1. If _entry_.[[LocalName]] is _name_, then
+                1. If _entry_.[[ImportName]] is ~namespace-object~, throw a *TypeError* exception.
+                1. Return the ImportedModule Record { [[Specifier]]: _entry_.[[ModuleRequest]], [[ImportName]]: _entry_.[[ImportName]] }.
             1. For each Record _r_ of _module_.[[VisibleModuleDeclarations]], do
               1. If _r_.[[Name]] is equal to _name_, then
                 1. Return _r_.[[Module]].
+            1. Throw a new *TypeError* exception.
+          </emu-alg>
+        </emu-clause>
+
+        <emu-clause id="sec-source-text-module-record-GetExportedModule" type="concrete method">
+          <h1>
+            <ins>
+              GetExportedModule (
+                _name_: a String,
+              ): either a normal completion containing a Module Record or a ImportedModule Record, or a throw completion
+            </ins>
+          </h1>
+          <dl class="header">
+            <dt>for</dt>
+            <dd>a Source Text Module Record _module_</dd>
+          </dl>
+
+          <emu-alg>
+            1. For each ExportEntries Record _entry_ of _module_.[[LocalExportEntries]], do
+              1. If _entry_.[[ExportName]] is _name_, then
+                1. If _entry_.[[ModuleRequest]] is *null*, then
+                  1. Assert: _entry_.[[LocalName]] is a String.
+                  1. For each Record _decl_ of _module_.[[VisibleModuleDeclarations]], do
+                    1. If _decl_.[[Name]] is _entry_.[[LocalName]], then
+                      1. Return _decl_.[[Module]].
+                  1. Throw a new *TypeError* exception.
+                1. Else if _entry_.[[ImportName]] is ~all-but-default~, then
+                  1. Throw a new *TypeError* exception.
+                1. Else if _entry_.[[ImportName]] is ~all~, then
+                  1. TODO: Study how we can support this case, if needed.
+                  1. Throw a new *TypeError* exception.
+                1. Else,
+                  1. Assert: _entry_.[[ImportName]] is a String.
+                  1. Return the ImportedModule Record { [[Specifier]]: _entry_.[[ModuleRequest]], [[ImportName]]: _entry_.[[ImportName]] }.
           </emu-alg>
         </emu-clause>
       </emu-clause>
@@ -1080,13 +1523,13 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           <dd></dd>
         </dl>
         <emu-alg>
+          1. <ins>Let _specifierRecord_ be the ModuleSpecifier Record { [[Name]]: _specifier_, [[Type]]: ~external~ }.</ins>
           1. If _result_ is a normal completion, then
-            1. <ins>Let _specifierRecord_ be the ModuleSpecifier Record { [[Name]]: _specifier_, [[Type]]: ~external~ }.</ins>
             1. If _referrer_.[[LoadedModules]] contains a Record _record_ such that _record_.[[Specifier]] is <del>_specifier_</del><ins>_specifierRecord_</ins>, then
               1. Assert: _record_.[[Module]] is _result_.[[Value]].
             1. Else, append the Record { [[Specifier]]: <del>_specifier_</del><ins>_specifierRecord_</ins>, [[Module]]: _result_.[[Value]] } to _referrer_.[[LoadedModules]].
           1. If _state_.[[Action]] is ~graph-loading~, then
-            1. Perform ContinueModuleLoading(_state_, _result_).
+            1. Perform ContinueModuleLoading(_state_, <ins>_referrer_, _specifierRecord_,</ins> _result_).
           1. Else,
             1. Perform ContinueDynamicImport(_state_, _result_).
         </emu-alg>
@@ -1108,6 +1551,66 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           StringLiteral
           <ins>Identifier</ins>
       </emu-grammar>
+    </emu-clause>
+
+    <emu-clause id="sec-exports">
+      <h1>Exports</h1>
+      <h2>Syntax</h2>
+      <emu-grammar type="definition">
+        ExportDeclaration :
+          `export` ExportFromClause FromClause `;`
+          `export` NamedExports `;`
+          `export` VariableStatement[~Yield, +Await]
+          `export` Declaration[~Yield, +Await]
+          <ins>`export` ModuleDeclaration</ins>
+          `export` `default` HoistableDeclaration[~Yield, +Await, +Default]
+          `export` `default` ClassDeclaration[~Yield, +Await, +Default]
+          `export` `default` [lookahead &notin; { `function`, `async` [no LineTerminator here] `function`, `class` }] AssignmentExpression[+In, ~Yield, +Await] `;`
+      </emu-grammar>
+
+      <emu-note type="editor">
+        TODO: Consider <code>export default</code> |ModuleDeclaration|.
+      </emu-note>
+
+      <emu-clause id="sec-static-semantics-exportedbindings" type="sdo" number="2">
+        <h1>Static Semantics: ExportedBindings ( ): a List of Strings</h1>
+        <dl class="header">
+        </dl>
+        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
+        <emu-alg>
+          1. <ins>Return the BoundNames of |ModuleDeclaration|.</ins>
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-static-semantics-exportednames" type="sdo">
+        <h1>Static Semantics: ExportedNames ( ): a List of Strings</h1>
+        <dl class="header">
+        </dl>
+        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
+        <emu-alg>
+          1. <ins>Return the BoundNames of |ModuleDeclaration|.</ins>
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-static-semantics-exportentries" oldids="sec-module-semantics-static-semantics-exportentries,sec-exports-static-semantics-exportentries" type="sdo">
+        <h1>Static Semantics: ExportEntries ( ): a List of ExportEntry Records</h1>
+        <dl class="header">
+        </dl>
+        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
+        <emu-alg>
+          1. <ins>Let _names_ be BoundNames of |ModuleDeclaration|.</ins>
+          1. <ins>Let _localName_ be the sole element of _names_.</ins>
+          1. <ins>Return a List whose sole element is the ExportEntry Record { [[ModuleRequest]]: *null*, [[ImportName]]: *null*, [[LocalName]]: _localName_, [[ExportName]]: _localName_ }.</ins>
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-exports-runtime-semantics-evaluation" type="sdo" number="7">
+        <h1>Runtime Semantics: Evaluation</h1>
+        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
+        <emu-alg>
+          1. <ins>Return ? Evaluation of |ModuleDeclaration|.</ins>
+        </emu-alg>
+      </emu-clause>
     </emu-clause>
   </emu-clause>
 </emu-clause>
