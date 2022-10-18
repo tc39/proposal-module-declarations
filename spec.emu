@@ -170,13 +170,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </dl>
 
       <emu-grammar>
-        ModuleDeclaration : `module` Identifier `{` ModuleBody? `}`
-      </emu-grammar>
-      <emu-alg>
-        1. Return a List whose sole element is the StringValue of |Identifier|.
-      </emu-alg>
-
-      <emu-grammar>
         ModuleItemList : ModuleItemList ModuleItem
       </emu-grammar>
       <emu-alg>
@@ -195,25 +188,33 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </emu-alg>
 
       <emu-grammar>
-        ModuleItem :
-          ImportDeclaration
-          ExportDeclaration
+        ModuleItem : ModuleDeclaration
+        ScriptItem : ModuleDeclaration
       </emu-grammar>
       <emu-alg>
-        1. Return a new empty List.
+        1. Return BoundNames of |ModuleDeclaration|.
       </emu-alg>
-      <emu-note type="editor">
-        TODO: Allow importing and exporting module declarations.
+
+      <emu-grammar>
+        ModuleItem : ImportDeclaration
+      </emu-grammar>
+      <emu-alg>
+        1. Return the BoundNames of |ImportDeclaration|.
+      </emu-alg>
+      <emu-note>
+        DeclaredModuleNames includes all the imported bindings, so that using them as import specifiers doesn't throw when parsing the module. However, they will be validated when linking by LoadInternalModule.
       </emu-note>
 
       <emu-grammar>
-        ModuleItem : StatementListItem
+        ModuleItem : ExportDeclaration
       </emu-grammar>
       <emu-alg>
-        1. Return an empty List.
+        1. If |ExportDeclaration| is `export` |ModuleDeclaration|, return the DeclaredModuleNames of |ModuleDeclaration|.
+        1. Return a new empty List.
       </emu-alg>
 
       <emu-grammar>
+        ModuleItem : StatementListItem
         ScriptItem : StatementListItem
       </emu-grammar>
       <emu-alg>
