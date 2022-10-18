@@ -1019,49 +1019,51 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           </table>
         </emu-table>
 
-        <p><ins>To better understand the contents of BlockedInternalImport Records, consider the three modules defined in <emu-xref href="#table-blockedinternalimport-example"></emu-xref>:</ins></p>
-        <emu-table id="table-blockedinternalimport-example" caption="BlockedInternalImport Record Example">
-          <table>
-            <tr>
-              <th>
-                Module
-              </th>
-              <th>
-                Source
-              </th>
-            </tr>
-            <tr>
-              <td>
-                <ins>_A_</ins>
-              </td>
-              <td>
-                <pre><code class="javascript">import { mod as module } from "B";</code><code class="javascript">import { value } from module;</code></pre>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <ins>_B_</ins>
-              </td>
-              <td>
-                <pre><code class="javascript">export { myModule as mod } from "C";</code></pre>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <ins>_C_</ins>
-              </td>
-              <td>
-                <pre><code class="javascript">export module myModule {</code><code class="javascript" style="padding-left:4ex">export const value = 1;</code><code class="javascript">}</code></pre>
-              </td>
-            </tr>
-          </table>
-        </emu-table>
+        <emu-note>
+          <p><ins>To better understand the contents of BlockedInternalImport Records, consider the three modules defined in <emu-xref href="#table-blockedinternalimport-example"></emu-xref>:</ins></p>
+          <emu-table id="table-blockedinternalimport-example" caption="BlockedInternalImport Record Example">
+            <table>
+              <tr>
+                <th>
+                  Module
+                </th>
+                <th>
+                  Source
+                </th>
+              </tr>
+              <tr>
+                <td>
+                  <ins>_A_</ins>
+                </td>
+                <td>
+                  <pre><code class="javascript">import { mod as module } from "B";</code><code class="javascript">import { value } from module;</code></pre>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <ins>_B_</ins>
+                </td>
+                <td>
+                  <pre><code class="javascript">export { myModule as mod } from "C";</code></pre>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <ins>_C_</ins>
+                </td>
+                <td>
+                  <pre><code class="javascript">export module myModule {</code><code class="javascript" style="padding-left:4ex">export const value = 1;</code><code class="javascript">}</code></pre>
+                </td>
+              </tr>
+            </table>
+          </emu-table>
 
-        <p><ins>Assume that the loading process of external modules is asynchronous. When loading the dependencies of _A_, <code>module</code> cannot be resolved yet and it will be represented by the BlockedInternalImport Record { [[BlockerReferrer]]: _A_, [[BlockerSpecifier]]: the ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: "B" }, [[ImportName]]: <code>"mod"</code>, [[BlockedReferrer]]: _A_,[[LocalName]]: <code>"module"</code> }.</ins></p>
+          <p><ins>Assume that the loading process of external modules is asynchronous. When loading the dependencies of _A_, <code>module</code> cannot be resolved yet and it will be represented by the BlockedInternalImport Record { [[BlockerReferrer]]: _A_, [[BlockerSpecifier]]: the ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: "B" }, [[ImportName]]: <code>"mod"</code>, [[BlockedReferrer]]: _A_,[[LocalName]]: <code>"module"</code> }.</ins></p>
 
-        <p><ins>When _B_ is loaded, <code>module</code> cannot be imported yet, because <code>mod</code> is not defined in _B_ but in one of its dependencies: the above BlockedInternalImport Record will be replaced by the BlockedInternalImport Record { [[BlockerReferrer]]: _B_, [[BlockerSpecifier]]: the ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: "C" }, [[ImportName]]: <code>"myModule"</code>, [[BlockedReferrer]]: _A_, [[LocalName]]: <code>"module"</code> }.</ins></p>
+          <p><ins>When _B_ is loaded, <code>module</code> cannot be imported yet, because <code>mod</code> is not defined in _B_ but in one of its dependencies: the above BlockedInternalImport Record will be replaced by the BlockedInternalImport Record { [[BlockerReferrer]]: _B_, [[BlockerSpecifier]]: the ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: "C" }, [[ImportName]]: <code>"myModule"</code>, [[BlockedReferrer]]: _A_, [[LocalName]]: <code>"module"</code> }.</ins></p>
 
-        <p><ins>Finally, after _C_ has finished loading, it's possible to load the <code>module</code> internal module. This logic is handled in the below InnerModuleLoading and ProcessBlockedInternalRequests algorithms.</ins></p>
+          <p><ins>Finally, after _C_ has finished loading, it's possible to load the <code>module</code> internal module. This logic is handled in the below InnerModuleLoading and ProcessBlockedInternalRequests algorithms.</ins></p>
+        </emu-note>
 
         <emu-clause id="sec-LoadRequestedModules" type="concrete method">
           <h1>
@@ -1310,6 +1312,425 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             </tr>
           </table>
         </emu-table>
+        <p>An <dfn id="importentry-record" variants="ImportEntry Records">ImportEntry Record</dfn> is a Record that digests information about a single declarative import. Each ImportEntry Record has the fields defined in <emu-xref href="#table-importentry-record-fields"></emu-xref>:</p>
+        <emu-table id="table-importentry-record-fields" caption="ImportEntry Record Fields">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                [[ModuleRequest]]
+              </td>
+              <td>
+                <del>a String</del><ins>a ModuleSpecifier Record</ins>
+              </td>
+              <td>
+                <del>String value of</del><ins>The ModuleSpecifier Record representing</ins> the |ModuleSpecifier| of the |ImportDeclaration|.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[ImportName]]
+              </td>
+              <td>
+                a String or ~namespace-object~
+              </td>
+              <td>
+                The name under which the desired binding is exported by the module identified by [[ModuleRequest]]. The value ~namespace-object~ indicates that the import request is for the target module's namespace object.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[LocalName]]
+              </td>
+              <td>
+                a String
+              </td>
+              <td>
+                The name that is used to locally access the imported value from within the importing module.
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+        <emu-note class="module-overflow-note">
+          <p><emu-xref href="#table-import-forms-mapping-to-importentry-records"></emu-xref> gives examples of ImportEntry records fields used to represent the syntactic import forms:</p>
+          <emu-table id="table-import-forms-mapping-to-importentry-records" caption="Import Forms Mappings to ImportEntry Records" informative oldids="table-40">
+            <table>
+              <tr>
+                <th>
+                  Import Statement Form
+                </th>
+                <th>
+                  [[ModuleRequest]]
+                </th>
+                <th>
+                  [[ImportName]]
+                </th>
+                <th>
+                  [[LocalName]]
+                </th>
+              </tr>
+              <tr>
+                <td>
+                  `import v from "mod";`
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  *"default"*
+                </td>
+                <td>
+                  *"v"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `import * as ns from "mod";`
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  ~namespace-object~
+                </td>
+                <td>
+                  *"ns"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `import {x} from "mod";`
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  *"x"*
+                </td>
+                <td>
+                  *"x"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `import {x as v} from "mod";`
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  *"x"*
+                </td>
+                <td>
+                  *"v"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <ins>`import {x as v} from mod;`</ins>
+                </td>
+                <td>
+                  <ins>ModuleSpecifier Record { [[Type]]: ~internal~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  <ins>*"x"*</ins>
+                </td>
+                <td>
+                  <ins>*"v"*</ins>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `import "mod";`
+                </td>
+                <td colspan="3">
+                  An ImportEntry Record is not created.
+                </td>
+              </tr>
+            </table>
+          </emu-table>
+        </emu-note>
+        <p>An <dfn id="exportentry-record" variants="ExportEntry Records">ExportEntry Record</dfn> is a Record that digests information about a single declarative export. Each ExportEntry Record has the fields defined in <emu-xref href="#table-exportentry-records"></emu-xref>:</p>
+        <emu-table id="table-exportentry-records" caption="ExportEntry Record Fields" oldids="table-41">
+          <table>
+            <tr>
+              <th>
+                Field Name
+              </th>
+              <th>
+                Value Type
+              </th>
+              <th>
+                Meaning
+              </th>
+            </tr>
+            <tr>
+              <td>
+                [[ExportName]]
+              </td>
+              <td>
+                a String or *null*
+              </td>
+              <td>
+                The name used to export this binding by this module.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[ModuleRequest]]
+              </td>
+              <td>
+                a <del>String</del><ins>ModuleSpecifier Record</ins> or *null*
+              </td>
+              <td>
+                The <del>String value of</del><ins>ModuleSpecifier Record representing</ins> the |ModuleSpecifier| of the |ExportDeclaration|. *null* if the |ExportDeclaration| does not have a |ModuleSpecifier|.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[ImportName]]
+              </td>
+              <td>
+                a String, *null*, ~all~, or ~all-but-default~
+              </td>
+              <td>
+                The name under which the desired binding is exported by the module identified by [[ModuleRequest]]. *null* if the |ExportDeclaration| does not have a |ModuleSpecifier|. ~all~ is used for `export * as ns from "mod"` declarations. ~all-but-default~ is used for `export * from "mod"` declarations.
+              </td>
+            </tr>
+            <tr>
+              <td>
+                [[LocalName]]
+              </td>
+              <td>
+                a String or *null*
+              </td>
+              <td>
+                The name that is used to locally access the exported value from within the importing module. *null* if the exported value is not locally accessible from within the module.
+              </td>
+            </tr>
+          </table>
+        </emu-table>
+        <emu-note class="module-overflow-note">
+          <p><emu-xref href="#table-export-forms-mapping-to-exportentry-records"></emu-xref> gives examples of the ExportEntry record fields used to represent the syntactic export forms:</p>
+          <emu-table id="table-export-forms-mapping-to-exportentry-records" caption="Export Forms Mappings to ExportEntry Records" informative oldids="table-42">
+            <table>
+              <tr>
+                <th>
+                  Export Statement Form
+                </th>
+                <th>
+                  [[ExportName]]
+                </th>
+                <th>
+                  [[ModuleRequest]]
+                </th>
+                <th>
+                  [[ImportName]]
+                </th>
+                <th>
+                  [[LocalName]]
+                </th>
+              </tr>
+              <tr>
+                <td>
+                  `export var v;`
+                </td>
+                <td>
+                  *"v"*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *"v"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export default function f() {}`
+                </td>
+                <td>
+                  *"default"*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *"f"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export default function () {}`
+                </td>
+                <td>
+                  *"default"*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *"\*default\*"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export default 42;`
+                </td>
+                <td>
+                  *"default"*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *"\*default\*"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export {x};`
+                </td>
+                <td>
+                  *"x"*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *"x"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export {v as x};`
+                </td>
+                <td>
+                  *"x"*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  *"v"*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export {x} from "mod";`
+                </td>
+                <td>
+                  *"x"*
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  *"x"*
+                </td>
+                <td>
+                  *null*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export {v as x} from "mod";`
+                </td>
+                <td>
+                  *"x"*
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  *"v"*
+                </td>
+                <td>
+                  *null*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export * from "mod";`
+                </td>
+                <td>
+                  *null*
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  ~all-but-default~
+                </td>
+                <td>
+                  *null*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  `export * as ns from "mod";`
+                </td>
+                <td>
+                  *"ns"*
+                </td>
+                <td>
+                  <del>*"mod"*</del><ins>ModuleSpecifier Record { [[Type]]: ~external~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  ~all~
+                </td>
+                <td>
+                  *null*
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <ins>`export {x} from mod;`</ins>
+                </td>
+                <td>
+                  <ins>*"x"*</ins>
+                </td>
+                <td>
+                  <ins>ModuleSpecifier Record { [[Type]]: ~internal~, [[Name]]: *"mod"* }</ins>
+                </td>
+                <td>
+                  <ins>*"x"*</ins>
+                </td>
+                <td>
+                  <ins>*null*</ins>
+                </td>
+              </tr>
+            </table>
+          </emu-table>
+        </emu-note>
 
         <p>The following definitions specify the required concrete methods and other abstract operations for Source Text Module Records</p>
 
@@ -1551,6 +1972,16 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           StringLiteral
           <ins>Identifier</ins>
       </emu-grammar>
+
+      <emu-clause id="sec-static-semantics-importentriesformodule" type="sdo" number="3">
+        <h1>
+          Static Semantics: ImportEntriesForModule (
+            _module_: a <del>String</del><ins>ModuleSpecifier Record</ins>,
+          ): a List of ImportEntry Records
+        </h1>
+        <dl class="header">
+        </dl>
+      </emu-clause>
     </emu-clause>
 
     <emu-clause id="sec-exports">
@@ -1602,6 +2033,16 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           1. <ins>Let _localName_ be the sole element of _names_.</ins>
           1. <ins>Return a List whose sole element is the ExportEntry Record { [[ModuleRequest]]: *null*, [[ImportName]]: *null*, [[LocalName]]: _localName_, [[ExportName]]: _localName_ }.</ins>
         </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-static-semantics-exportentriesformodule" type="sdo">
+        <h1>
+          Static Semantics: ExportEntriesForModule (
+            _module_: a <del>String</del><ins>ModuleSpecifier Record</ins> or *null*,
+          ): a List of ExportEntry Records
+        </h1>
+        <dl class="header">
+        </dl>
       </emu-clause>
 
       <emu-clause id="sec-exports-runtime-semantics-evaluation" type="sdo" number="7">
