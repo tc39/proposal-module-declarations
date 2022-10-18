@@ -267,19 +267,17 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </emu-alg>
 
       <emu-grammar>
-        ModuleItem :
-          ImportDeclaration
-          ExportDeclaration
+        ModuleItem : ExportDeclaration
       </emu-grammar>
       <emu-alg>
+        1. If |ExportDeclaration| is `export` |ModuleDeclaration|, return RawModuleDeclarations of |ModuleDeclaration|.
         1. Return a new empty List.
       </emu-alg>
-      <emu-note type="editor">
-        TODO: Allow importing and exporting module declarations.
-      </emu-note>
 
       <emu-grammar>
-        ModuleItem : StatementListItem
+        ModuleItem :
+          StatementListItem
+          ImportDeclaration
       </emu-grammar>
       <emu-alg>
         1. Return an empty List.
