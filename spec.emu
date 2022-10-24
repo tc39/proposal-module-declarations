@@ -18,7 +18,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       ModuleExpression :
         `module` [no LineTerminator here] `{` ModuleBody? `}`
     </emu-grammar>
-    <p>More specifically, it'a diff on top of <a href="https://github.com/tc39/proposal-js-module-blocks/pull/75">tc39/proposal-js-module-blocks#75</a>, which is itself a diff on top of <a href="https://github.com/tc39/ecma262/pull/2905">tc39/ecma262#2905</a>.</p>
+    <p>That proposal is a diff on top of <a href="https://github.com/tc39/ecma262/pull/2905">tc39/ecma262#2905</a>.</p>
   </emu-note>
 
   <h2>Syntax</h2>
@@ -146,8 +146,11 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </emu-grammar>
       <emu-alg>
         1. Let _localDeclaredModules_ be DeclaredModuleNames of |ModuleItemList|.
-        1. Let _allDeclaredModules_ be the list-concatenation of _declaredModules_ and _localDeclaredModules_.
-        1. Return ContainsUndefinedModuleReference of |ModuleItemList| with argument _allDeclaredModules_.
+        1. Let _lexNames_ be the LexicallyDeclaredNames of |ModuleItemList|.
+        1. Let _varNames_ be the VarDeclaredNames of |ModuleItemList|.
+        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_ or _varNames_.
+        1. Append all the elements of _localDeclaredModules_ to _visibleDeclaredModules_.
+        1. Return ContainsUndefinedModuleReference of |ModuleItemList| with argument _visibleDeclaredModules_.
       </emu-alg>
 
       <emu-grammar>
@@ -158,12 +161,193 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
         1. Let _localDeclaredModules_ be DeclaredModuleNames of |ScriptItemList|.
         1. Return ContainsUndefinedModuleReference of |ScriptItemList| with argument _localDeclaredModules_.
       </emu-alg>
+
+      <emu-grammar>
+        Block : `{` `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+
+      <emu-grammar>
+        Block : `{` StatementList `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Let _lexNames_ be the LexicallyDeclaredNames of |StatementList|.
+        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_.
+        1. Return ContainsUndefinedModuleReference of |StatementList| with argument _visibleDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        FunctionDeclaration :
+          `function` BindingIdentifier `(` FormalParameters `)` `{` FunctionBody `}`
+          `function` `(` FormalParameters `)` `{` FunctionBody `}`
+
+        FunctionExpression :
+          `function` BindingIdentifier? `(` FormalParameters `)` `{` FunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. If |BindingIdentifier| is present, return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |FormalParameters|, |FunctionBody|, |BindingIdentifier|).
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |FormalParameters|, |FunctionBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        MethodDefinition : ClassElementName `(` UniqueFormalParameters `)` `{` FunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |UniqueFormalParameters|, |FunctionBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        MethodDefinition : `set` ClassElementName `(` PropertySetParameterList `)` `{` FunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |PropertySetParameterList|, |FunctionBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        GeneratorDeclaration :
+          `function` BindingIdentifier `*` `(` UniqueFormalParameters `)` `{` GeneratorBody `}`
+          `function` `*` `(` UniqueFormalParameters `)` `{` GeneratorBody `}`
+
+        GeneratorExpression :
+          `function` BindingIdentifier? `*` `(` UniqueFormalParameters `)` `{` GeneratorBody `}`
+
+        GeneratorMethod :
+          `*` ClassElementName `(` UniqueFormalParameters `)` `{` GeneratorBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. If |BindingIdentifier| is present, return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |UniqueFormalParameters|, |GeneratorBody|, |BindingIdentifier|).
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |UniqueFormalParameters|, |GeneratorBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        AsyncFunctionDeclaration :
+          `async` `function` BindingIdentifier `(` UniqueFormalParameters `)` `{` AsyncFunctionBody `}`
+          `async` `function` `(` UniqueFormalParameters `)` `{` AsyncFunctionBody `}`
+
+        AsyncFunctionExpression :
+          `async` `function` BindingIdentifier? `(` UniqueFormalParameters `)` `{` AsyncFunctionBody `}`
+
+        AsyncMethod :
+          `async` ClassElementName `(` UniqueFormalParameters `)` `{` AsyncFunctionBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. If |BindingIdentifier| is present, return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |UniqueFormalParameters|, |AsyncFunctionBody|, |BindingIdentifier|).
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |UniqueFormalParameters|, |AsyncFunctionBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        AsyncGeneratorDeclaration :
+          `async` `function` BindingIdentifier `*` `(` UniqueFormalParameters `)` `{` AsyncGeneratorBody `}`
+          `async` `function` `*` `(` UniqueFormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncGeneratorExpression :
+          `async` `function` BindingIdentifier? `*` `(` UniqueFormalParameters `)` `{` AsyncGeneratorBody `}`
+
+        AsyncGeneratorMethod :
+          `async` `*` ClassElementName `(` UniqueFormalParameters `)` `{` AsyncGeneratorBody `}`
+      </emu-grammar>
+      <emu-alg>
+        1. If |BindingIdentifier| is present, return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |UniqueFormalParameters|, |AsyncGeneratorBody|, |BindingIdentifier|).
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |UniqueFormalParameters|, |AsyncGeneratorBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        ArrowFunction : ArrowParameters `=>` ConciseBody
+      </emu-grammar>
+      <emu-alg>
+        1. If |ArrowParameters| is |BindingIdentifier|, let _params_ be |BindingIdentifier|.
+        1. Else,
+          1. Let _cover_ be the |CoverParenthesizedExpressionAndArrowParameterList| of |ArrowParameters|.
+          1. Let _params_ be the |ArrowFormalParameters| that is covered by _cover_.
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, _params_, |ConciseBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        AsyncArrowFunction : `async` AsyncArrowBindingIdentifier `=>` AsyncConciseBody
+      </emu-grammar>
+      <emu-alg>
+        1. Let _params_ be the |BindingIdentifier| of |AsyncArrowBindingIdentifier|.
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, _params_, |AsyncConciseBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        AsyncArrowFunction : CoverCallExpressionAndAsyncArrowHead `=>` AsyncConciseBody
+      </emu-grammar>
+      <emu-alg>
+        1. Let _head_ be the |AsyncArrowHead| that is covered by |CoverCallExpressionAndAsyncArrowHead|.
+        1. Let _params_ be the |ArrowFormalParameters| of _head_.
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, _params_, |AsyncConciseBody|).
+      </emu-alg>
+
+      <emu-grammar>
+        ClassDeclaration :
+          `class` BindingIdentifier ClassTail
+          `class` ClassTail
+
+        ClassExpression :
+          `class` BindingIdentifier? ClassTail
+      </emu-grammar>
+      <emu-alg>
+        1. Let _visibleDeclaredModules_ be _declaredModules_.
+        1. If |BindingIdentifier| is present, then
+          1. Let _id_ be the StringValue of |BindingIdentifier|.
+          1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not equal to _id_.
+        1. Return ContainsUndefinedModuleReference of |ClassTail| with argument _visibleDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        FunctionBody : FunctionStatementList
+      </emu-grammar>
+      <emu-alg>
+        1. Let _lexNames_ be the LexicallyDeclaredNames of |FunctionStatementList|.
+        1. Let _varNames_ be the VarDeclaredNames of |FunctionStatementList|.
+        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_ or _varNames_.
+        1. Return ContainsUndefinedModuleReference of |FunctionStatementList| with argument _visibleDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        ClassStaticBlockBody : ClassStaticBlockStatementList
+      </emu-grammar>
+      <emu-alg>
+        1. Let _lexNames_ be the LexicallyDeclaredNames of |ClassStaticBlockStatementList|.
+        1. Let _varNames_ be the VarDeclaredNames of |ClassStaticBlockStatementList|.
+        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_ or _varNames_.
+        1. Return ContainsUndefinedModuleReference of |ClassStaticBlockStatementList| with argument _visibleDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        Catch : `catch` `(` CatchParameter `)` Block
+      </emu-grammar>
+      <emu-alg>
+        1. Return ContainsUndefinedModuleReferenceInFunction(_declaredModules_, |CatchParameter|, |Block|).
+      </emu-alg>
+
+      <emu-clause id="sec-ContainsUndefinedModuleReferenceInFunction" type="abstract operation">
+        <h1>
+          ContainsUndefinedModuleReferenceInFunction (
+            _declaredModules_: a List of Strings,
+            _params_: a Parse Node,
+            _body_: a Parse Node,
+            optional _binding_: a Parse Node,
+          ): a Boolean
+        </h1>
+        <dl class="header"></dl>
+        <emu-alg>
+          1. Let _boundNames_ be the BoundNames of _params_.
+          1. If _binding_ is present, append the StringValue of _binding_ to _boundNames_.
+          1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _boundNames_.
+          1. If ContainsUndefinedModuleReference of _params_ with argument _visibleDeclaredModules_ is *true*, return *true*.
+          1. Return ContainsUndefinedModuleReference of _body_ with argument _visibleDeclaredModules_ is *true*.
+        </emu-alg>
+      </emu-clause>
     </emu-clause>
 
     <emu-clause id="sec-declaredmodulenames" type="sdo">
       <h1>
         <ins>
-          Static Semantics: DeclaredModuleNames ( ): a Boolean
+          Static Semantics: DeclaredModuleNames ( ): a List of Strings
         </ins>
       </h1>
       <dl class="header">
@@ -1785,8 +1969,9 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
               1. <ins>Append the Record { [[Name]]: _rawDecl_.[[Name]], [[Module]]: ~empty~ } to _visibleModuleDeclarations_.</ins>
               1. <ins>NOTE: The [[Module]] field of this Record will be set to a Module Record before the end of this ParseModule operation. The ~empty~ value is never observable outside of ParseModule.</ins>
             1. <ins>If _outerModuleDeclarations_ is present, then</ins>
+              1. <ins>Let _localDeclaredNames_ be the list-concatenation of the VarDeclaredNames of _body_ and the LexicallyDeclaredNames of _body_.</ins>
               1. <ins>For each Record _m_ of _outerModuleDeclarations_, do</ins>
-                1. <ins>If _visibleModuleDeclarations_ does not contain a Record with [[Name]] equal to _m_.[[Name]], then</ins>
+                1. <ins>If _m_.[[Name]] is not an element of _localDeclaredNames_ and _visibleModuleDeclarations_ does not contain a Record with [[Name]] equal to _m_.[[Name]], then</ins>
                   1. <ins>Append _m_ to _visibleModuleDeclarations_.</ins>
               1. <ins>TODO: Instead of copying all of them, we could just add the declarations that are imported inside this module. This would simplify structured cloning, since we wouldn't need to clone all the visible modules.</ins>
             1. <ins>For each Record _rawDecl_ of _rawModuleDeclarations_, do</ins>
