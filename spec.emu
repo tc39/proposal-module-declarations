@@ -13,7 +13,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
   <h1><ins>Module Declarations</ins></h1>
 
   <emu-note type="editor">
-    <p>This proposal builds on top of <a href="https://tc39.es/proposal-js-module-blocks/">the Module Blocks proposal</a>, which introduces the following production:</p>
+    <p>This proposal builds on top of <a href="https://tc39.es/proposal-js-module-blocks/">the Module Expressions proposal</a>, which introduces the following production:</p>
     <emu-grammar type="definition">
       ModuleExpression :
         `module` [no LineTerminator here] `{` ModuleBody? `}`
@@ -40,7 +40,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 
   <emu-clause id="sec-module-declaration-instantiatemoduleobject" type="sdo">
     <h1>
-      Runtime Semantics: InstantiateModuleDeclaration ( ): a ModuleBlock object
+      Runtime Semantics: InstantiateModuleDeclaration ( ): a Module object
     </h1>
     <dl class="header">
     </dl>
@@ -54,10 +54,10 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       1. Assert: _currentScriptOrModule_ is not *null*.
       1. Let _moduleDeclaration_ be the Record in _currentScriptOrModule_.[[VisibleModuleDeclarations]] with [[Name]] equal to _name_.
       1. Assert: _moduleDeclaration_ exists and is unique.
-      1. Let _moduleBlock_ be OrdinaryObjectCreate(%ModuleBlock.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
-      1. Set _moduleBlock_.[[ModuleRecord]] to _moduleDeclaration_.[[Module]].
-      1. Set _moduleBlock_.[[SourceText]] to the source text matched by |ModuleDeclaration|.
-      1. Return _moduleBlock_.
+      1. Let _moduleObject_ be OrdinaryObjectCreate(%Module.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
+      1. Set _moduleObject_.[[ModuleRecord]] to _moduleDeclaration_.[[Module]].
+      1. Set _moduleObject_.[[SourceText]] to the source text matched by |ModuleDeclaration|.
+      1. Return _moduleObject_.
     </emu-alg>
   </emu-clause>
 </emu-clause>
