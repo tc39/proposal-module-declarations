@@ -1039,8 +1039,8 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           </table>
         </emu-table>
 
-        <p>A <dfn id="moduleloadstate-record" variants="ModuleLoadState Records">ModuleLoadState Record</dfn> is a Record that contains information about the loading process of a module graph. It's used to continue loading after a call to HostLoadImportedModule. Each ModuleLoadState Record has the fields defined in <emu-xref href="#table-moduleloadstate-record-fields"></emu-xref>:</p>
-        <emu-table id="table-moduleloadstate-record-fields" caption="ModuleLoadState Record Fields">
+        <p>A <dfn id="graphloadingstate-record" variants="GraphLoadingState Records">GraphLoadingState Record</dfn> is a Record that contains information about the loading process of a module graph. It's used to continue loading after a call to HostLoadImportedModule. Each GraphLoadingState Record has the fields defined in <emu-xref href="#table-graphloadingstate-record-fields"></emu-xref>:</p>
+        <emu-table id="table-graphloadingstate-record-fields" caption="GraphLoadingState Record Fields">
           <table>
             <tr>
               <th>
@@ -1052,17 +1052,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
               <th>
                 Meaning
               </th>
-            </tr>
-            <tr>
-              <td>
-                [[Action]]
-              </td>
-              <td>
-                ~graph-loading~ or ~dynamic-import~
-              </td>
-              <td>
-                The action that caused the call to HostLoadImportedModule. It is ~graph-loading~ when loading the dependencies of a module; it is ~dynamic-import~ when loading a module that was requested by an `import()` call.
-              </td>
             </tr>
             <tr>
               <td>
@@ -1083,18 +1072,18 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                 a Boolean
               </td>
               <td>
-                This field is only used if [[Action]] is ~graph-loading~. It is true if the loading process has not finished yet, neither successfully nor with an error.
+                It is true if the loading process has not finished yet, neither successfully nor with an error.
               </td>
             </tr>
             <tr>
               <td>
-                [[PendingModules]]
+                [[PendingModulesCount]]
               </td>
               <td>
                 a non-negative integer
               </td>
               <td>
-                This field is only used if [[Action]] is ~graph-loading~. It tracks the number of pending HostLoadImportedModule calls.
+                It tracks the number of pending HostLoadImportedModule calls.
               </td>
             </tr>
             <tr>
@@ -1105,18 +1094,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                 a List of Cyclic Module Records
               </td>
               <td>
-                This field is only used if [[Action]] is ~graph-loading~. It is a list of the Cyclic Module Records that have been already loaded by the current loading process, to avoid infinite loops with circular dependencies.
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <ins>[[BlockedInternalImports]]</ins>
-              </td>
-              <td>
-                <ins>a List of BlockedInternalImport Records</ins>
-              </td>
-              <td>
-                <p><ins>The imports that cannot be loaded yet, because they import from an internal module which is itself imported from a module which hasn't been loaded yet.</ins></p>
+                It is a list of the Cyclic Module Records that have been already loaded by the current loading process, to avoid infinite loops with circular dependencies.
               </td>
             </tr>
             <tr>
@@ -1124,7 +1102,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                 [[HostDefined]]
               </td>
               <td>
-                anything (default value is *undefined*)
+                anything (default value is ~empty~)
               </td>
               <td>
                 It contains host-defined data to pass from the LoadRequestedModules caller to HostLoadImportedModule.
@@ -1262,7 +1240,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           <emu-clause id="sec-InnerModuleLoading" type="abstract operation">
             <h1>
               InnerModuleLoading (
-                _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                _state_: a GraphLoadingState Record,
                 _module_: a Module Record,
                 <ins>optional _referrer_: a Cyclic Module Record,</ins>
                 <ins>optional _specifier_: a ModuleSpecifier Record,</ins>
@@ -1316,7 +1294,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           <emu-clause id="sec-ContinueModuleLoading" type="abstract operation">
             <h1>
               ContinueModuleLoading (
-                _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                _state_: a GraphLoadingState Record,
                 <ins>_referrer_: a Cyclic Module Record,</ins>
                 <ins>_specifier_: a ModuleSpecifier Record,</ins>
                 _moduleCompletion_: either a normal completion containing a Module Record or a throw completion,
@@ -1344,7 +1322,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             <h1>
               <ins>
                 ProcessBlockedInternalRequests (
-                  _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                  _state_: a GraphLoadingState Record,
                   _referrer_: a Cyclic Module Record,
                   _specifier_: a ModuleSpecifier Record,
                   _module_: a Module Record,
@@ -1382,7 +1360,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             <h1>
               <ins>
                 AbortModuleLoading (
-                  _state_: a ModuleLoadState Record whose [[Action]] is ~graph-loading~,
+                  _state_: a GraphLoadingState Record,
                   _completion_: a normal completion or a throw completion,
                 ): a Boolean
               </ins>
@@ -2060,7 +2038,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             <ins>
               LoadInternalModule (
                 _name_: a String,
-              ): a normal completion containing a Module Record or a ImportedModule Record, or a throw completion
+              ): a throw completion, or a normal completion containing either a Module Record or a ImportedModule Record
             </ins>
           </h1>
           <dl class="header">
@@ -2085,7 +2063,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             <ins>
               GetExportedModule (
                 _name_: a String,
-              ): either a normal completion containing a Module Record or a ImportedModule Record, or a throw completion
+              ): a throw completion, or a normal completion containing either a Module Record or a ImportedModule Record
             </ins>
           </h1>
           <dl class="header">
@@ -2119,7 +2097,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           FinishLoadingImportedModule (
             _referrer_: a Script Record, a Cyclic Module Record, or a Realm Record,
             _specifier_: a String,
-            _state_: a ModuleLoadState Record,
+            _payload_: a GraphLoadingState Record or a PromiseCapability Record,
             _result_: either a normal completion containing a Module Record or a throw completion,
           ): ~unused~
         </h1>
@@ -2133,10 +2111,10 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             1. If _referrer_.[[LoadedModules]] contains a Record _record_ such that _record_.[[Specifier]] is <del>_specifier_</del><ins>_specifierRecord_</ins>, then
               1. Assert: _record_.[[Module]] is _result_.[[Value]].
             1. Else, append the Record { [[Specifier]]: <del>_specifier_</del><ins>_specifierRecord_</ins>, [[Module]]: _result_.[[Value]] } to _referrer_.[[LoadedModules]].
-          1. If _state_.[[Action]] is ~graph-loading~, then
-            1. Perform ContinueModuleLoading(_state_, <ins>_referrer_, _specifierRecord_,</ins> _result_).
+          1. If _payload_ is a GraphLoadingState Record, then
+            1. Perform ContinueModuleLoading(_payload_, <ins>_referrer_, _specifierRecord_,</ins> _result_).
           1. Else,
-            1. Perform ContinueDynamicImport(_state_, _result_).
+            1. Perform ContinueDynamicImport(_payload_, _result_).
         </emu-alg>
       </emu-clause>
     </emu-clause>
