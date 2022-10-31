@@ -38,10 +38,3 @@ export module odds {
     // ...
 }
 ```
-
-> **TODO**: Should the _binding_ introduced by the module declaration be initially in TDZ, as it is for class declarations?
-> ```js
-> import mod; // ok
-> await import(mod); // ok or error?
-> module mod {}
-> ```
