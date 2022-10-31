@@ -59,6 +59,20 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       1. Set _moduleObject_.[[SourceText]] to the source text matched by |ModuleDeclaration|.
       1. Return _moduleObject_.
     </emu-alg>
+
+    <emu-note type="editor">
+      <p>TODO: _currentScriptOrModule_ can be *null* when using `eval` to evaluate a module declaration in a context where there is no active script or module.</p>
+
+      <p>For example:</p>
+
+      <pre><code class="html">
+        &lt;button onclick="(0, eval)('module block {}; import(module { import block; })')"&gt;
+      </code><code class="html" style="margin-left:2em">
+        Click me
+      </code><code class="html">
+        &lt;/button&gt;
+      </code></pre>
+    </emu-note>
   </emu-clause>
 </emu-clause>
 
