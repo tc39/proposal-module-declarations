@@ -1,6 +1,6 @@
 # Importing and Exporting Module Declarations
 
-Module declarations can be exported, re-exported and imported from other modules:
+Module declarations can be exported, re-exported, and imported from other modules:
 
 ```js
 // file-a.js

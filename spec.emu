@@ -961,7 +961,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           </table>
         </emu-table>
 
-        <p><ins>A <dfn id="modulespecifier-record" variants="ModuleSpecifier Records">ModuleSpecifier Record</dfn> represents the requet to import a module. Each ModuleSpecifier Record has the fields defined in <emu-xref href="#table-modulespecifier-record-fields"></emu-xref>:</ins></p>
+        <p><ins>A <dfn id="modulespecifier-record" variants="ModuleSpecifier Records">ModuleSpecifier Record</dfn> represents the request to import a module. Each ModuleSpecifier Record has the fields defined in <emu-xref href="#table-modulespecifier-record-fields"></emu-xref>:</ins></p>
         <emu-table id="table-modulespecifier-record-fields" caption="ModuleSpecifier Record Fields">
           <table>
             <tr>
