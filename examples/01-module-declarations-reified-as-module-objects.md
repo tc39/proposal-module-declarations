@@ -2,7 +2,7 @@
 
 $$ {\text{module declarations} \over \text{module expressions}} = {\text{function declarations} \over \text{function expressions}} $$
 
-Except for the "they are static declaration parts", module declarations behave exactly like module expressions assigned to a `const` variable, except that they are hoisted similarly to function declarations.
+Except for the "they are static declaration parts", module declarations behave exactly like module expressions assigned to a `const` variable, except that they are hoisted similarly to strict-mode function declarations.
 
 These two snippets are equivalent:
 
