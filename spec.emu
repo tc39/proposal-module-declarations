@@ -40,50 +40,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       1. Return ~empty~.
     </emu-alg>
   </emu-clause>
-
-  <emu-clause id="sec-module-declaration-instantiatemoduleobject" type="sdo">
-    <h1>
-      Runtime Semantics: InstantiateModuleDeclaration ( ): a Module object
-    </h1>
-    <dl class="header">
-    </dl>
-
-    <emu-grammar>
-      ModuleDeclaration :
-        `module` Identifier `{` ModuleBody? `}`
-        `module` `{` ModuleBody? `}`
-    </emu-grammar>
-    <emu-alg>
-      1. Let _name_ be *"\*default\*"*.
-      1. If |Identifier| is present, set _name_ to the StringValue of |Identifier|.
-      1. Let _currentScriptOrModule_ be GetActiveScriptOrModule().
-      1. Assert: _currentScriptOrModule_ is not *null*.
-      1. Let _moduleDeclaration_ be the Record in _currentScriptOrModule_.[[VisibleModuleDeclarations]] with [[Name]] equal to _name_.
-      1. Assert: _moduleDeclaration_ exists and is unique.
-      1. Let _moduleObject_ be OrdinaryObjectCreate(%Module.prototype%, &laquo; [[ModuleRecord]], [[SourceText]] &raquo;).
-      1. Set _moduleObject_.[[ModuleRecord]] to _moduleDeclaration_.[[Module]].
-      1. Set _moduleObject_.[[SourceText]] to the source text matched by |ModuleDeclaration|.
-      1. Return _moduleObject_.
-    </emu-alg>
-
-    <emu-note>
-      <p>*"\*default\*"* is used within this specification as a synthetic name for anonymous default export values. See <emu-xref href="#note-star-default-star">this note</emu-xref> for more details.</p>
-    </emu-note>
-
-    <emu-note type="editor">
-      <p>TODO: _currentScriptOrModule_ can be *null* when using `eval` to evaluate a module declaration in a context where there is no active script or module.</p>
-
-      <p>For example:</p>
-
-      <pre><code class="html">
-        &lt;button onclick="(0, eval)('module block {}; import(module { import block; })')"&gt;
-      </code><code class="html" style="margin-left:2em">
-        Click me
-      </code><code class="html">
-        &lt;/button&gt;
-      </code></pre>
-    </emu-note>
-  </emu-clause>
 </emu-clause>
 
 <emu-clause id="sec-syntax-directed-operations" number="8">
@@ -107,12 +63,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </emu-grammar>
       <emu-alg>
         1. Return &laquo; *"\*default\*"* &raquo;.
-      </emu-alg>
-      <emu-grammar>
-        <ins>ExportDeclaration : `export` ModuleDeclaration</ins>
-      </emu-grammar>
-      <emu-alg>
-        1. Return the BoundNames of |ModuleDeclaration|.
       </emu-alg>
       <emu-grammar>
         <ins>ExportDeclaration : `export` `default` ModuleDeclaration</ins>
@@ -145,13 +95,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       <dl class="header">
       </dl>
       <emu-grammar>
-        <ins>ModuleItem : ModuleDeclaration</ins>
-      </emu-grammar>
-      <emu-alg>
-        1. Return a List whose sole element is |ModuleDeclaration|.
-      </emu-alg>
-      <emu-grammar>
-        <ins>ScriptItem : ModuleDeclaration</ins>
+        <ins>Declaration : ModuleDeclaration</ins>
       </emu-grammar>
       <emu-alg>
         1. Return a List whose sole element is |ModuleDeclaration|.
@@ -202,28 +146,35 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </emu-alg>
 
       <emu-grammar>
-        ScriptBody : ScriptItemList
+        ScriptBody : StatementList
       </emu-grammar>
       <emu-alg>
         1. Assert: _declaredModules_ is an empty List.
-        1. Let _localDeclaredModules_ be DeclaredModuleNames of |ScriptItemList|.
-        1. Return ContainsUndefinedModuleReference of |ScriptItemList| with argument _localDeclaredModules_.
+        1. Let _localDeclaredModules_ be DeclaredModuleNames of |StatementList|.
+        1. Return ContainsUndefinedModuleReference of |StatementList| with argument _localDeclaredModules_.
       </emu-alg>
 
       <emu-grammar>
-        Block : `{` `}`
-      </emu-grammar>
-      <emu-alg>
-        1. Return *false*.
-      </emu-alg>
-
-      <emu-grammar>
+        FunctionStatementList : StatementList
+        ClassStaticBlockStatementList : StatementList
         Block : `{` StatementList `}`
       </emu-grammar>
       <emu-alg>
         1. Let _lexNames_ be the LexicallyDeclaredNames of |StatementList|.
-        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_.
+        1. Let _varNames_ be the VarDeclaredNames of |StatementList|.
+        1. Let _localDeclaredModules_ be the DeclaredModuleNames of |StatementList|.
+        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_ or _varNames_.
+        1. Append each element of _localDeclaredModules_ to _visibleDeclaredModules_.
         1. Return ContainsUndefinedModuleReference of |StatementList| with argument _visibleDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        FunctionStatementList : [empty]
+        ClassStaticBlockStatementList : [empty]
+        Block : `{` `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
       </emu-alg>
 
       <emu-grammar>
@@ -341,28 +292,8 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
         1. Let _visibleDeclaredModules_ be _declaredModules_.
         1. If |BindingIdentifier| is present, then
           1. Let _id_ be the StringValue of |BindingIdentifier|.
-          1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not equal to _id_.
+          1. Set _visibleDeclaredModules_ to a new List containing the elements of _declaredModules_ that are not equal to _id_.
         1. Return ContainsUndefinedModuleReference of |ClassTail| with argument _visibleDeclaredModules_.
-      </emu-alg>
-
-      <emu-grammar>
-        FunctionBody : FunctionStatementList
-      </emu-grammar>
-      <emu-alg>
-        1. Let _lexNames_ be the LexicallyDeclaredNames of |FunctionStatementList|.
-        1. Let _varNames_ be the VarDeclaredNames of |FunctionStatementList|.
-        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_ or _varNames_.
-        1. Return ContainsUndefinedModuleReference of |FunctionStatementList| with argument _visibleDeclaredModules_.
-      </emu-alg>
-
-      <emu-grammar>
-        ClassStaticBlockBody : ClassStaticBlockStatementList
-      </emu-grammar>
-      <emu-alg>
-        1. Let _lexNames_ be the LexicallyDeclaredNames of |ClassStaticBlockStatementList|.
-        1. Let _varNames_ be the VarDeclaredNames of |ClassStaticBlockStatementList|.
-        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_ or _varNames_.
-        1. Return ContainsUndefinedModuleReference of |ClassStaticBlockStatementList| with argument _visibleDeclaredModules_.
       </emu-alg>
 
       <emu-grammar>
@@ -387,6 +318,8 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           1. If _binding_ is present, append the StringValue of _binding_ to _boundNames_.
           1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _boundNames_.
           1. If ContainsUndefinedModuleReference of _params_ with argument _visibleDeclaredModules_ is *true*, return *true*.
+          1. Let _localDeclaredModules_ be the DeclaredModuleNames of |StatementList|.
+          1. Append each element of _localDeclaredModules_ to _visibleDeclaredModules_.
           1. Return ContainsUndefinedModuleReference of _body_ with argument _visibleDeclaredModules_ is *true*.
         </emu-alg>
       </emu-clause>
@@ -411,17 +344,33 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       </emu-alg>
 
       <emu-grammar>
-        ScriptItemList : ScriptItemList ScriptItem
+        StatementList : StatementList StatementListItem
       </emu-grammar>
       <emu-alg>
-        1. Let _names1_ be DeclaredModuleNames of |ScriptItemList|.
-        1. Let _names2_ be DeclaredModuleNames of |ScriptItem|.
+        1. Let _names1_ be DeclaredModuleNames of |StatementList|.
+        1. Let _names2_ be DeclaredModuleNames of |StatementListItem|.
         1. Return the list-concatenation of _names1_ and _names2_.
       </emu-alg>
 
       <emu-grammar>
-        ModuleItem : ModuleDeclaration
-        ScriptItem : ModuleDeclaration
+        StatementListItem : Statement
+      </emu-grammar>
+      <emu-alg>
+        1. Return a new empty List.
+      </emu-alg>
+
+      <emu-grammar>
+        Declaration :
+          HoistableDeclaration
+          LexicalDeclaration
+          ClassDeclaration
+      </emu-grammar>
+      <emu-alg>
+        1. Return a new empty List.
+      </emu-alg>
+
+      <emu-grammar>
+        Declaration : ModuleDeclaration
       </emu-grammar>
       <emu-alg>
         1. Return BoundNames of |ModuleDeclaration|.
@@ -436,91 +385,437 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       <emu-note>
         DeclaredModuleNames includes all the imported bindings, so that using them as import specifiers doesn't throw when parsing the module. However, they will be validated when linking by LoadInternalModule.
       </emu-note>
-
-      <emu-grammar>
-        ModuleItem : ExportDeclaration
-      </emu-grammar>
-      <emu-alg>
-        1. If |ExportDeclaration| is `export` |ModuleDeclaration|, return the DeclaredModuleNames of |ModuleDeclaration|.
-        1. Return a new empty List.
-      </emu-alg>
-
-      <emu-grammar>
-        ModuleItem : StatementListItem
-        ScriptItem : StatementListItem
-      </emu-grammar>
-      <emu-alg>
-        1. Return an empty List.
-      </emu-alg>
     </emu-clause>
 
-    <emu-clause id="sec-rawmoduledeclarations" type="sdo">
+    <emu-clause id="sec-toplevelmoduledeclarations" type="sdo">
       <h1>
         <ins>
-          Static Semantics: RawModuleDeclarations ( ): a List of Records with fields [[Name]] (a String) and [[Body]] (a String)
+          Static Semantics: TopLevelModuleDeclarations ( ): a List of |ModuleDeclaration| Parse Node
         </ins>
       </h1>
       <dl class="header">
       </dl>
 
       <emu-grammar>
-        ModuleDeclaration :
-          `module` Identifier `{` ModuleBody? `}`
-          `module` `{` ModuleBody? `}`
-      </emu-grammar>
-      <emu-alg>
-        1. Let _name_ be *"\*default\*"*.
-        1. Let _body_ be *""*.
-        1. If |Identifier| is present, set _name_ to the StringValue of |Identifier|.
-        1. If |ModuleBody| is present, set _body_ to the source text matched by |ModuleBody|.
-        1. Return a List whose sole element is the Record { [[Name]]: _name_, [[Body]]: _body_ }.
-      </emu-alg>
-
-      <emu-note>
-        <p>*"\*default\*"* is used within this specification as a synthetic name for anonymous default export values. See <emu-xref href="#note-star-default-star">this note</emu-xref> for more details.</p>
-      </emu-note>
-
-      <emu-grammar>
         ModuleItemList : ModuleItemList ModuleItem
       </emu-grammar>
       <emu-alg>
-        1. Let _decls1_ be RawModuleDeclarations of |ModuleItemList|.
-        1. Let _decls2_ be RawModuleDeclarations of |ModuleItem|.
+        1. Let _decls1_ be TopLevelModuleDeclarations of |ModuleItemList|.
+        1. Let _decls2_ be TopLevelModuleDeclarations of |ModuleItem|.
         1. Return the list-concatenation of _decls1_ and _decls2_.
       </emu-alg>
 
       <emu-grammar>
-        ScriptItemList : ScriptItemList ScriptItem
+        ModuleItem : Statement
+        ModuleItem : ImportDeclaration
       </emu-grammar>
       <emu-alg>
-        1. Let _decls1_ be RawModuleDeclarations of |ScriptItemList|.
-        1. Let _decls2_ be RawModuleDeclarations of |ScriptItem|.
-        1. Return the list-concatenation of _decls1_ and _decls2_.
-      </emu-alg>
-
-      <emu-grammar>
-        ModuleItem : ExportDeclaration
-      </emu-grammar>
-      <emu-alg>
-        1. If |ExportDeclaration| is `export` |ModuleDeclaration|, return RawModuleDeclarations of |ModuleDeclaration|.
-        1. If |ExportDeclaration| is `export` `default` |ModuleDeclaration|, return RawModuleDeclarations of |ModuleDeclaration|.
         1. Return a new empty List.
       </emu-alg>
 
       <emu-grammar>
-        ModuleItem :
-          StatementListItem
-          ImportDeclaration
+        Declaration : ModuleDeclaration
       </emu-grammar>
       <emu-alg>
-        1. Return an empty List.
+        1. Return a new List whose sole element is |ModuleDeclaration|.
       </emu-alg>
 
       <emu-grammar>
-        ScriptItem : StatementListItem
+        Declaration :
+          HoistableDeclaration
+          LexicalDeclaration
+          ClassDeclaration
       </emu-grammar>
       <emu-alg>
-        1. Return an empty List.
+        1. Return a new empty List.
+      </emu-alg>
+
+      <emu-grammar>
+        ExportDeclaration : `export` `default` ModuleDeclaration
+      </emu-grammar>
+      <emu-alg>
+        1. Return a new List whose sole element is |ModuleDeclaration|.
+      </emu-alg>
+
+      <emu-grammar>
+        ExportDeclaration :
+          `export` ExportFromClause FromClause `;`
+          `export` NamedExports `;`
+          `export` VariableStatement
+          `export` `default` HoistableDeclaration
+          `export` `default` ClassDeclaration
+          `export` `default` AssignmentExpression `;`
+      </emu-grammar>
+      <emu-alg>
+        1. Return a new empty List.
+      </emu-alg>
+    </emu-clause>
+
+    <emu-clause id="sec-parseinnermodules" type="sdo">
+      <h1>
+        <ins>
+          Static Semantics: ParseInnerModules (
+            _declaredModules_: a List of Records,
+          ): ~unused~
+        </ins>
+      </h1>
+      <dl class="header"></dl>
+      <p>Unless explicitly specified otherwise, all nonterminals have an implicit definition for ParseInnerModules with argument _declaredModules_.The implicit definition applies ParseInnerModules with argument _declaredModules_ to the nonterminal's inner nonterminals. For example, ContainsUndefinedModuleReference of |ExponentiationExpression| is implicitly defined as follows:</p>
+      <emu-grammar example>
+        ExponentiationExpression : UpdateExpression `**` ExponentiationExpression
+      </emu-grammar>
+      <emu-alg example>
+        1. Perform ParseInnerModules of |UpdateExpression| with argument _declaredModules_.
+        1. Perform ParseInnerModules of |ExponentiationExpression| with argument _declaredModules_.
+      </emu-alg>
+
+      <p>The following productions have a different definition of ContainsUndefinedModuleReference:</p>
+
+      <emu-grammar>
+        ModuleSpecifier : Identifier
+      </emu-grammar>
+      <emu-alg>
+        1. Let _reference_ be the StringValue of |Identifier|.
+        1. If _reference_ is in _declaredModules_, return *false*.
+        1. Return *true*.
+      </emu-alg>
+
+      <emu-grammar>
+        ModuleBody : ModuleItemList
+      </emu-grammar>
+      <emu-alg>
+        1. Let _localDeclaredModules_ be DeclaredModuleNames of |ModuleItemList|.
+        1. Let _lexNames_ be the LexicallyDeclaredNames of |ModuleItemList|.
+        1. Let _varNames_ be the VarDeclaredNames of |ModuleItemList|.
+        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_ or _varNames_.
+        1. Append all the elements of _localDeclaredModules_ to _visibleDeclaredModules_.
+        1. Return ContainsUndefinedModuleReference of |ModuleItemList| with argument _visibleDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        ScriptBody : StatementList
+      </emu-grammar>
+      <emu-alg>
+        1. Assert: _declaredModules_ is an empty List.
+        1. Let _localDeclaredModules_ be DeclaredModuleNames of |StatementList|.
+        1. Return ContainsUndefinedModuleReference of |StatementList| with argument _localDeclaredModules_.
+      </emu-alg>
+
+      <emu-grammar>
+        Block : `{` `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Return *false*.
+      </emu-alg>
+
+      <emu-grammar>
+        Block : `{` StatementList `}`
+      </emu-grammar>
+      <emu-alg>
+        1. Let _lexNames_ be the LexicallyDeclaredNames of |StatementList|.
+        1. Let _visibleDeclaredModules_ be a new List containing the elements of _declaredModules_ that are not in _lexNames_.
+        1. Return ContainsUndefinedModuleReference of |StatementList| with argument _visibleDeclaredModules_.
+      </emu-alg>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-executable-code-and-execution-contexts" number="9">
+  <h1>Executable Code and Execution Contexts</h1>
+
+  <emu-clause id="sec-environment-records" oldids="sec-lexical-environments">
+    <h1>Environment Records</h1>
+    <p><dfn variants="Environment Records">Environment Record</dfn> is a specification type used to define the association of |Identifier|s to specific variables and functions, based upon the lexical nesting structure of ECMAScript code. Usually an Environment Record is associated with some specific syntactic structure of ECMAScript code such as a |FunctionDeclaration|, a |BlockStatement|, or a |Catch| clause of a |TryStatement|. Each time such code is evaluated, a new Environment Record is created to record the identifier bindings that are created by that code.</p>
+    <p>Every Environment Record has an [[OuterEnv]] field, which is either *null* or a reference to an outer Environment Record. This is used to model the logical nesting of Environment Record values. The outer reference of an (inner) Environment Record is a reference to the Environment Record that logically surrounds the inner Environment Record. An outer Environment Record may, of course, have its own outer Environment Record. An Environment Record may serve as the outer environment for multiple inner Environment Records. For example, if a |FunctionDeclaration| contains two nested |FunctionDeclaration|s then the Environment Records of each of the nested functions will have as their outer Environment Record the Environment Record of the current evaluation of the surrounding function.</p>
+    <p>Environment Records are purely specification mechanisms and need not correspond to any specific artefact of an ECMAScript implementation. It is impossible for an ECMAScript program to directly access or manipulate such values.</p>
+
+    <p><ins>Each Environment Record has the fields listed in <emu-xref href="#table-fields-of-environment-records"></emu-xref>.</ins></p>
+    <emu-table id="table-fields-of-environment-records" caption="Fields of Environment Records">
+      <table>
+        <tr>
+          <th>
+            Field
+          </th>
+          <th>
+            Type
+          </th>
+          <th>
+            Purpose
+          </th>
+        </tr>
+        <tr>
+          <td>
+            <ins>[[OuterEnv]]</ins>
+          </td>
+          <td>
+            <ins>an Environment Record or *null*</ins>
+          </td>
+          <td>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <ins>[[ModuleDeclarations]]</ins>
+          </td>
+          <td>
+            <ins>a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)</ins>
+          </td>
+          <td>
+          </td>
+        </tr>
+      </table>
+    </emu-table>
+
+    <emu-clause id="sec-environment-record-operations" oldids="sec-lexical-environment-operations">
+      <h1>Environment Record Operations</h1>
+      <p>The following abstract operations are used in this specification to operate upon Environment Records:</p>
+
+      <emu-clause id="sec-addmoduledeclaration" type="abstract operation">
+        <h1>
+          <ins>
+            AddModuleDeclaration (
+              _name_: a String,
+              _module_: a Module Record,
+              _env_: an Environment Record
+            ): ~unused~
+          </ins>
+        </h1>
+        <dl class="header">
+        </dl>
+        <emu-alg>
+          1. Append the Record { [[Name]]: _name_, [[Module]]: _module_ } to _env_.[[ModuleDeclarations]].
+          1. Return ~unused~.
+        </emu-alg>
+      </emu-clause>
+
+      <emu-clause id="sec-resolvemoduledeclaration" type="abstract operation">
+        <h1>
+          <ins>
+            ResolveModuleDeclaration (
+              _name_: a String,
+              _env_: an Environment Record
+            ): either a normal completion containing a Module Record, or a throw completion
+          </ins>
+        </h1>
+        <dl class="header">
+        </dl>
+        <emu-alg>
+          1. Let _moduleDeclarations_ be _env_.[[ModuleDeclarations]].
+          1. For each Record _m_ in _moduleDeclarations_, do
+            1. If _m_.[[Name]] is _name_, return _m_.[[Module]].
+          1. If _env_.HasBinding(_name_), throw a *ReferenceError* exception.
+          1. If _env_ is a Module Environment Record or a Global Environment Record, throw a *ReferenceError* exception.
+          1. Assert: _env_.[[OuterEnv]] is not *null*.
+          1. Return ? ResolveModuleDeclaration(_name_, _env_.[[OuterEnv]]).
+        </emu-alg>
+      </emu-clause>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-ordinary-and-exotic-objects-behaviours" number="10">
+  <h1>Ordinary and Exotic Objects Behaviours</h1>
+
+  <emu-clause id="sec-ecmascript-function-objects" number="2">
+    <h1>ECMAScript Function Objects</h1>
+
+    <emu-clause id="sec-functiondeclarationinstantiation" type="abstract operation" number="11">
+      <h1>
+        FunctionDeclarationInstantiation (
+          _func_: a function object,
+          _argumentsList_: a List of ECMAScript language values,
+        ): either a normal completion containing ~unused~ or an abrupt completion
+      </h1>
+      <dl class="header">
+        <dt>description</dt>
+        <dd>_func_ is the function object for which the execution context is being established.</dd>
+      </dl>
+      <!--
+        WARNING: If you add, remove, rename, or repurpose any variable names
+                 within this algorithm, you may need to update
+                 #sec-web-compat-functiondeclarationinstantiation accordingly.
+      -->
+      <emu-alg>
+        1. Let _calleeContext_ be the running execution context.
+        1. Let _code_ be _func_.[[ECMAScriptCode]].
+        1. Let _strict_ be _func_.[[Strict]].
+        1. Let _formals_ be _func_.[[FormalParameters]].
+        1. Let _parameterNames_ be the BoundNames of _formals_.
+        1. If _parameterNames_ has any duplicate entries, let _hasDuplicates_ be *true*. Otherwise, let _hasDuplicates_ be *false*.
+        1. Let _simpleParameterList_ be IsSimpleParameterList of _formals_.
+        1. Let _hasParameterExpressions_ be ContainsExpression of _formals_.
+        1. Let _varNames_ be the VarDeclaredNames of _code_.
+        1. Let _varDeclarations_ be the VarScopedDeclarations of _code_.
+        1. Let _lexicalNames_ be the LexicallyDeclaredNames of _code_.
+        1. Let _functionNames_ be a new empty List.
+        1. Let _functionsToInitialize_ be a new empty List.
+        1. For each element _d_ of _varDeclarations_, in reverse List order, do
+          1. If _d_ is neither a |VariableDeclaration| nor a |ForBinding| nor a |BindingIdentifier|, then
+            1. Assert: _d_ is either a |FunctionDeclaration|, a |GeneratorDeclaration|, an |AsyncFunctionDeclaration|, or an |AsyncGeneratorDeclaration|.
+            1. Let _fn_ be the sole element of the BoundNames of _d_.
+            1. If _fn_ is not an element of _functionNames_, then
+              1. Insert _fn_ as the first element of _functionNames_.
+              1. NOTE: If there are multiple function declarations for the same name, the last declaration is used.
+              1. Insert _d_ as the first element of _functionsToInitialize_.
+        1. Let _argumentsObjectNeeded_ be *true*.
+        1. If _func_.[[ThisMode]] is ~lexical~, then
+          1. NOTE: Arrow functions never have an arguments object.
+          1. Set _argumentsObjectNeeded_ to *false*.
+        1. Else if *"arguments"* is an element of _parameterNames_, then
+          1. Set _argumentsObjectNeeded_ to *false*.
+        1. Else if _hasParameterExpressions_ is *false*, then
+          1. If *"arguments"* is an element of _functionNames_ or if *"arguments"* is an element of _lexicalNames_, then
+            1. Set _argumentsObjectNeeded_ to *false*.
+        1. If _strict_ is *true* or if _hasParameterExpressions_ is *false*, then
+          1. NOTE: Only a single Environment Record is needed for the parameters, since calls to `eval` in strict mode code cannot create new bindings which are visible outside of the `eval`.
+          1. Let _env_ be the LexicalEnvironment of _calleeContext_.
+        1. Else,
+          1. NOTE: A separate Environment Record is needed to ensure that bindings created by direct eval calls in the formal parameter list are outside the environment where parameters are declared.
+          1. Let _calleeEnv_ be the LexicalEnvironment of _calleeContext_.
+          1. Let _env_ be NewDeclarativeEnvironment(_calleeEnv_).
+          1. Assert: The VariableEnvironment of _calleeContext_ is _calleeEnv_.
+          1. Set the LexicalEnvironment of _calleeContext_ to _env_.
+        1. For each String _paramName_ of _parameterNames_, do
+          1. Let _alreadyDeclared_ be ! _env_.HasBinding(_paramName_).
+          1. NOTE: Early errors ensure that duplicate parameter names can only occur in non-strict functions that do not have parameter default values or rest parameters.
+          1. If _alreadyDeclared_ is *false*, then
+            1. Perform ! _env_.CreateMutableBinding(_paramName_, *false*).
+            1. If _hasDuplicates_ is *true*, then
+              1. Perform ! _env_.InitializeBinding(_paramName_, *undefined*).
+        1. If _argumentsObjectNeeded_ is *true*, then
+          1. If _strict_ is *true* or if _simpleParameterList_ is *false*, then
+            1. Let _ao_ be CreateUnmappedArgumentsObject(_argumentsList_).
+          1. Else,
+            1. NOTE: A mapped argument object is only provided for non-strict functions that don't have a rest parameter, any parameter default value initializers, or any destructured parameters.
+            1. Let _ao_ be CreateMappedArgumentsObject(_func_, _formals_, _argumentsList_, _env_).
+          1. If _strict_ is *true*, then
+            1. Perform ! _env_.CreateImmutableBinding(*"arguments"*, *false*).
+            1. NOTE: In strict mode code early errors prevent attempting to assign to this binding, so its mutability is not observable.
+          1. Else,
+            1. Perform ! _env_.CreateMutableBinding(*"arguments"*, *false*).
+          1. Perform ! _env_.InitializeBinding(*"arguments"*, _ao_).
+          1. Let _parameterBindings_ be the list-concatenation of _parameterNames_ and &laquo; *"arguments"* &raquo;.
+        1. Else,
+          1. Let _parameterBindings_ be _parameterNames_.
+        1. Let _iteratorRecord_ be CreateListIteratorRecord(_argumentsList_).
+        1. If _hasDuplicates_ is *true*, then
+          1. Perform ? IteratorBindingInitialization of _formals_ with arguments _iteratorRecord_ and *undefined*.
+        1. Else,
+          1. Perform ? IteratorBindingInitialization of _formals_ with arguments _iteratorRecord_ and _env_.
+        1. If _hasParameterExpressions_ is *false*, then
+          1. NOTE: Only a single Environment Record is needed for the parameters and top-level vars.
+          1. Let _instantiatedVarNames_ be a copy of the List _parameterBindings_.
+          1. For each element _n_ of _varNames_, do
+            1. If _n_ is not an element of _instantiatedVarNames_, then
+              1. Append _n_ to _instantiatedVarNames_.
+              1. Perform ! _env_.CreateMutableBinding(_n_, *false*).
+              1. Perform ! _env_.InitializeBinding(_n_, *undefined*).
+          1. Let _varEnv_ be _env_.
+        1. Else,
+          1. NOTE: A separate Environment Record is needed to ensure that closures created by expressions in the formal parameter list do not have visibility of declarations in the function body.
+          1. Let _varEnv_ be NewDeclarativeEnvironment(_env_).
+          1. Set the VariableEnvironment of _calleeContext_ to _varEnv_.
+          1. Let _instantiatedVarNames_ be a new empty List.
+          1. For each element _n_ of _varNames_, do
+            1. If _n_ is not an element of _instantiatedVarNames_, then
+              1. Append _n_ to _instantiatedVarNames_.
+              1. Perform ! _varEnv_.CreateMutableBinding(_n_, *false*).
+              1. If _n_ is not an element of _parameterBindings_ or if _n_ is an element of _functionNames_, let _initialValue_ be *undefined*.
+              1. Else,
+                1. Let _initialValue_ be ! _env_.GetBindingValue(_n_, *false*).
+              1. Perform ! _varEnv_.InitializeBinding(_n_, _initialValue_).
+              1. NOTE: A var with the same name as a formal parameter initially has the same value as the corresponding initialized parameter.
+        1. [id="step-functiondeclarationinstantiation-web-compat-insertion-point"] NOTE: Annex <emu-xref href="#sec-web-compat-functiondeclarationinstantiation"></emu-xref> adds additional steps at this point.
+        1. If _strict_ is *false*, then
+          1. Let _lexEnv_ be NewDeclarativeEnvironment(_varEnv_).
+          1. NOTE: Non-strict functions use a separate Environment Record for top-level lexical declarations so that a direct eval can determine whether any var scoped declarations introduced by the eval code conflict with pre-existing top-level lexically scoped declarations. This is not needed for strict functions because a strict direct eval always places all declarations into a new Environment Record.
+        1. Else, let _lexEnv_ be _varEnv_.
+        1. Set the LexicalEnvironment of _calleeContext_ to _lexEnv_.
+        1. <ins>Let _outerModuleDeclarations_ be the outer module declarations, obtained using ResolveModuleDeclaration (TODO: define how).</ins>
+        1. <ins>Let _moduleHostDefined_ be *null*.</ins>
+        1. <ins>Let _currentScriptOrModule_ be GetActiveScriptOrModule().</ins>
+        1. <ins>If _currentScriptOrModule_ is not *null*, set _moduleHostDefined_ to _currentScriptOrModule_.[[HostDefined]].</ins>
+        1. <ins>Let _localModuleDeclarations_ be InstantiateModuleDeclarations(_code_, the current Realm Record, _moduleHostDefined_, _outerModuleDeclarations_).</ins>
+        1. Let _lexDeclarations_ be the LexicallyScopedDeclarations of _code_.
+        1. For each element _d_ of _lexDeclarations_, do
+          1. NOTE: A lexically declared name cannot be the same as a function/generator declaration, formal parameter, or a var name. Lexically declared names are only instantiated here but not initialized.
+          1. For each element _dn_ of the BoundNames of _d_, do
+            1. If IsConstantDeclaration of _d_ is *true*, then
+              1. Perform ! _lexEnv_.CreateImmutableBinding(_dn_, *true*).
+            1. Else,
+              1. Perform ! _lexEnv_.CreateMutableBinding(_dn_, *false*).
+        1. Let _privateEnv_ be the PrivateEnvironment of _calleeContext_.
+        1. <ins>For each Record _m_ in _localModuleDeclarations_, do</ins>
+          1. <ins>Perform AddModuleDeclaration(_m_.[[Name]], _m.[[Module]], _env_).</ins>
+          1. <ins>Let _mo_ be GetModuleObject(_m_.[[Module]]).</ins>
+          1. <ins>Perform ! _env_.InitializeBinding(_m_.[[Name]], _mo_).</ins>
+        1. For each Parse Node _f_ of _functionsToInitialize_, do
+          1. Let _fn_ be the sole element of the BoundNames of _f_.
+          1. Let _fo_ be InstantiateFunctionObject of _f_ with arguments _lexEnv_ and _privateEnv_.
+          1. Perform ! _varEnv_.SetMutableBinding(_fn_, _fo_, *false*).
+        1. Return ~unused~.
+      </emu-alg>
+      <emu-note>
+        <p><emu-xref href="#sec-block-level-function-declarations-web-legacy-compatibility-semantics"></emu-xref> provides an extension to the above algorithm that is necessary for backwards compatibility with web browser implementations of ECMAScript that predate ECMAScript 2015.</p>
+      </emu-note>
+    </emu-clause>
+  </emu-clause>
+</emu-clause>
+
+<emu-clause id="sec-ecmascript-language-statements-and-declarations" number="14">
+  <h1>ECMAScript Language: Statements and Declarations</h1>
+  <h2>Syntax</h2>
+  <emu-grammar type="definition">
+    Declaration[Yield, Await] :
+      HoistableDeclaration[?Yield, ?Await, ~Default]
+      ClassDeclaration[?Yield, ?Await, ~Default]
+      LexicalDeclaration[+In, ?Yield, ?Await]
+      <ins>ModuleDeclaration[~Default]</ins>
+  </emu-grammar>
+
+  <emu-clause id="sec-block" number="2">
+    <h1>Block</h1>
+
+    <emu-clause id="sec-blockdeclarationinstantiation" type="abstract operation" number="3">
+      <h1>
+        BlockDeclarationInstantiation (
+          _code_: a Parse Node,
+          _env_: a Declarative Environment Record,
+        ): ~unused~
+      </h1>
+      <dl class="header">
+        <dt>description</dt>
+        <dd>_code_ is the Parse Node corresponding to the body of the block. _env_ is the Environment Record in which bindings are to be created.</dd>
+      </dl>
+      <p>It performs the following steps when called:</p>
+      <!--
+        WARNING: If you add, remove, rename, or repurpose any variable names
+                 within this algorithm, you may need to update
+                 #sec-web-compat-blockdeclarationinstantiation accordingly.
+      -->
+      <emu-alg>
+        1. <ins>Let _outerModuleDeclarations_ be the outer module declarations, obtained using ResolveModuleDeclaration (TODO: define how).</ins>
+        1. <ins>Let _moduleHostDefined_ be *null*.</ins>
+        1. <ins>Let _currentScriptOrModule_ be GetActiveScriptOrModule().</ins>
+        1. <ins>If _currentScriptOrModule_ is not *null*, set _moduleHostDefined_ to _currentScriptOrModule_.[[HostDefined]].</ins>
+        1. <ins>Let _localModuleDeclarations_ be InstantiateModuleDeclarations(_code_, the current Realm Record, _moduleHostDefined_, _outerModuleDeclarations_).</ins>
+        1. Let _declarations_ be the LexicallyScopedDeclarations of _code_.
+        1. Let _privateEnv_ be the running execution context's PrivateEnvironment.
+        1. For each element _d_ of _declarations_, do
+          1. For each element _dn_ of the BoundNames of _d_, do
+            1. If IsConstantDeclaration of _d_ is *true*, then
+              1. Perform ! _env_.CreateImmutableBinding(_dn_, *true*).
+            1. Else,
+              1. [id="step-blockdeclarationinstantiation-createmutablebinding"] Perform ! _env_.CreateMutableBinding(_dn_, *false*). NOTE: This step is replaced in section <emu-xref href="#sec-web-compat-blockdeclarationinstantiation"></emu-xref>.
+          1. If _d_ is a |FunctionDeclaration|, a |GeneratorDeclaration|, an |AsyncFunctionDeclaration|, or an |AsyncGeneratorDeclaration|, then
+            1. Let _fn_ be the sole element of the BoundNames of _d_.
+            1. Let _fo_ be InstantiateFunctionObject of _d_ with arguments _env_ and _privateEnv_.
+            1. [id="step-blockdeclarationinstantiation-initializebinding"] Perform ! _env_.InitializeBinding(_fn_, _fo_). NOTE: This step is replaced in section <emu-xref href="#sec-web-compat-blockdeclarationinstantiation"></emu-xref>.
+        1. <ins>For each Record _m_ in _localModuleDeclarations_, do</ins>
+          1. <ins>Perform AddModuleDeclaration(_m_.[[Name]], _m.[[Module]], _env_).</ins>
+          1. <ins>Let _mo_ be GetModuleObject(_m_.[[Module]]).</ins>
+          1. <ins>Perform ! _env_.InitializeBinding(_m_.[[Name]], _mo_).</ins>
+        1. Return ~unused~.
       </emu-alg>
     </emu-clause>
   </emu-clause>
@@ -531,26 +826,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 
   <emu-clause id="sec-scripts">
     <h1>Scripts</h1>
-    <h2>Syntax</h2>
-    <emu-grammar type="definition">
-      Script :
-        ScriptBody?
-
-      ScriptBody :
-        <del>StatementList[~Yield, ~Await, ~Return]</del>
-        <ins>ScriptItemList</ins>
-
-      <ins>
-      ScriptItemList :
-        ScriptItemList ScriptItem
-      </ins>
-
-      <ins>
-      ScriptItem :
-        ModuleDeclaration[~Default]
-        StatementListItem[~Yield, +Await, ~Return]
-      </ins>
-    </emu-grammar>
 
     <emu-clause id="sec-scripts-static-semantics-early-errors" number="1">
       <h1>Static Semantics: Early Errors</h1>
@@ -617,17 +892,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           </tr>
           <tr>
             <td>
-              <ins>[[VisibleModuleDeclarations]]</ins>
-            </td>
-            <td>
-              <ins>a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)</ins>
-            </td>
-            <td>
-              <ins>All the |ModuleDeclaration| declarations that are accessible from this script. It does not contain two different records with the same [[Name]].</ins>
-            </td>
-          </tr>
-          <tr>
-            <td>
               [[HostDefined]]
             </td>
             <td>
@@ -637,26 +901,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           </tr>
         </table>
       </emu-table>
-    </emu-clause>
-
-    <emu-clause id="sec-parse-script" type="abstract operation" number="5">
-      <h1>
-        ParseScript (
-          _sourceText_: ECMAScript source text,
-          _realm_: a Realm Record or *undefined*,
-          _hostDefined_: anything,
-        ): a Script Record or a non-empty List of *SyntaxError* objects
-      </h1>
-      <dl class="header">
-        <dt>description</dt>
-        <dd>It creates a Script Record based upon the result of parsing _sourceText_ as a |Script|.</dd>
-      </dl>
-
-      <emu-alg>
-        1. Let _script_ be ParseText(_sourceText_, |Script|).
-        1. If _script_ is a List of errors, return _script_.
-        1. Return Script Record { [[Realm]]: _realm_, [[ECMAScriptCode]]: _script_, [[LoadedModules]]: &laquo; &raquo;, <ins>[[VisibleModuleDeclarations]]: &laquo; &raquo;,</ins> [[HostDefined]]: _hostDefined_ }.
-      </emu-alg>
     </emu-clause>
 
     <emu-clause id="sec-globaldeclarationinstantiation" type="abstract operation" number="7">
@@ -709,8 +953,8 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                   1. Append _vn_ to _declaredVarNames_.
         1. NOTE: No abnormal terminations occur after this algorithm step if the global object is an ordinary object. However, if the global object is a Proxy exotic object it may exhibit behaviours that cause abnormal terminations in some of the following steps.
         1. [id="step-globaldeclarationinstantiation-web-compat-insertion-point"] NOTE: Annex <emu-xref href="#sec-web-compat-globaldeclarationinstantiation"></emu-xref> adds additional steps at this point.
+        1. <ins>Let _localModuleDeclarations_ be InstantiateModuleDeclarations(_script_, _script_.[[Realm]], _script_.[[HostDefined]], a new empty List).</ins>
         1. Let _lexDeclarations_ be the LexicallyScopedDeclarations of _script_.
-        1. <ins>Let _modulesToInitialize_ be a new empty List.</ins>
         1. Let _privateEnv_ be *null*.
         1. For each element _d_ of _lexDeclarations_, do
           1. NOTE: Lexically declared names are only instantiated here but not initialized.
@@ -719,12 +963,10 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
               1. Perform ? <emu-meta effects="user-code">_env_.CreateImmutableBinding</emu-meta>(_dn_, *true*).
             1. Else,
               1. Perform ? <emu-meta effects="user-code">_env_.CreateMutableBinding</emu-meta>(_dn_, *false*).
-            1. <ins>If _d_ is a |ModuleDeclaration|, then</ins>
-              1. <ins>Append _d_ to _modulesToInitialize_.</ins>
-        1. <ins>For each Parse Node _m_ of _modulesToInitialize_, do</ins>
-            1. <ins>Let _mn_ be the sole element of the BoundNames of _m_.</ins>
-            1. <ins>Let _mo_ be InstantiateModuleDeclaration of _m_.</ins>
-            1. <ins>Perform ! _env_.InitializeBinding(_mn_, _mo_).</ins>
+        1. <ins>For each Record _m_ of _localModuleDeclarations_, do</ins>
+            1. <ins>Perform AddModuleDeclaration(_m_.[[Name]], _m.[[Module]], _env_).</ins>
+            1. <ins>Let _mo_ be GetModuleObject(_m_.[[Module]]).</ins>
+            1. <ins>Perform ! _env_.InitializeBinding(_m_.[[Name]], _mo_).</ins>
         1. For each Parse Node _f_ of _functionsToInitialize_, do
           1. Let _fn_ be the sole element of the BoundNames of _f_.
           1. Let _fo_ be InstantiateFunctionObject of _f_ with arguments _env_ and _privateEnv_.
@@ -742,27 +984,19 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
 
   <emu-clause id="sec-modules">
     <h1>Modules</h1>
-    <h2>Syntax</h2>
-    <emu-grammar type="definition">
-      Module :
-        ModuleBody?
-
-      ModuleBody :
-        ModuleItemList
-
-      ModuleItemList :
-        ModuleItem
-        ModuleItemList ModuleItem
-
-      ModuleItem :
-        ImportDeclaration
-        ExportDeclaration
-        <ins>ModuleDeclaration[~Default]</ins>
-        StatementListItem[~Yield, +Await, ~Return]
-    </emu-grammar>
 
     <emu-clause id="sec-module-semantics">
       <h1>Module Semantics</h1>
+
+      <emu-clause id="sec-module-semantics-static-semantics-early-errors">
+        <h1>Static Semantics: Early Errors</h1>
+        <emu-grammar><ins>Module : ModuleBody</ins></emu-grammar>
+        <ul>
+          <li>
+            1. <ins>It is a Syntax Error if ContainsUndefinedModuleReference of |ModuleBody| with argument a new empty List is *true*.</ins>
+          </li>
+        </ul>
+      </emu-clause>
 
       <emu-clause id="sec-static-semantics-modulerequests" type="sdo" number="3">
         <h1>Static Semantics: ModuleRequests ( ): a List of Strings</h1>
@@ -838,6 +1072,25 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             </tr>
           </table>
         </emu-table>
+
+        <emu-clause id="sec-module-GetModuleObject" type="abstract operation">
+          <h1>
+            <ins>
+              GetModuleObject (
+                _moduleRecord_: a Module Record,
+              ): a Module Object
+            </ins>
+          </h1>
+          <dl class="header">
+            <dt>description</dt>
+            <dd>It creates the Module Object corresponding to the _moduleRecord_ Module Record.</dd>
+          </dl>
+
+          <emu-alg>
+            1. Let _moduleObject_ be OrdinaryObjectCreate(%Module.prototype%, &laquo; [[ModuleRecord]] &raquo;).
+            1. Set _moduleObject_.[[ModuleRecord]] to _moduleRecord_.
+          </emu-alg>
+        </emu-clause>
       </emu-clause>
 
       <emu-clause id="sec-cyclic-module-records" number="5">
@@ -1950,7 +2203,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
               _sourceText_: ECMAScript source text,
               _realm_: a Realm Record,
               _hostDefined_: anything,
-              optional _outerModuleDeclarations_: a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)
             ): a Source Text Module Record or a non-empty List of *SyntaxError* objects
           </h1>
           <dl class="header">
@@ -1960,55 +2212,96 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           <emu-alg>
             1. Let _body_ be ParseText(_sourceText_, |Module|).
             1. If _body_ is a List of errors, return _body_.
-            1. <ins>Let _outerModuleDeclarationNames_ be a new empty List.</ins>
-            1. <ins>If _outerModuleDeclarations_ is present, then</ins>
-              1. <ins>For each Record _decl_ in _outerModuleDeclarations_, do</ins>
-                1. <ins>Append _decl_.[[Name]] to _outerModuleDeclarationNames_.</ins>
-            1. <ins>If ContainsUndefinedModuleReference of _body_ with argument _outerModuleDeclarationNames_ is *true*, return &laquo; a new *TypeError* &raquo;.</ins>
-            1. Let _requestedModules_ be the ModuleRequests of _body_.
-            1. Let _importEntries_ be ImportEntries of _body_.
-            1. Let _importedBoundNames_ be ImportedLocalNames(_importEntries_).
-            1. Let _indirectExportEntries_ be a new empty List.
-            1. Let _localExportEntries_ be a new empty List.
-            1. Let _starExportEntries_ be a new empty List.
-            1. Let _exportEntries_ be ExportEntries of _body_.
-            1. For each ExportEntry Record _ee_ of _exportEntries_, do
-              1. If _ee_.[[ModuleRequest]] is *null*, then
-                1. If _ee_.[[LocalName]] is not an element of _importedBoundNames_, then
-                  1. Append _ee_ to _localExportEntries_.
-                1. Else,
-                  1. Let _ie_ be the element of _importEntries_ whose [[LocalName]] is the same as _ee_.[[LocalName]].
-                  1. If _ie_.[[ImportName]] is ~namespace-object~, then
-                    1. NOTE: This is a re-export of an imported module namespace object.
+            1. <ins>Return BuildSourceTextModuleRecord(_body_, _realm_, _hostDefined_, a new empty List).</ins>
+          </emu-alg>
+
+          <emu-clause id="sec-buildsourcetextmodulerecord" type="abstract operation">
+            <h1>
+              <ins>
+                BuildSourceTextModuleRecord (
+                  _body_: a |Module| or |ModuleBody| Parse Node,
+                  _realm_: a Realm Record,
+                  _hostDefined_: anything,
+                  _outerModuleDeclarations_: a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)
+                ): a Source Text Module Record
+              </ins>
+            </h1>
+            <dl class="header">
+              <dt>description</dt>
+              <dd>It creates a Source Text Module Record based upon the result of analysing _body_.</dd>
+            </dl>
+            <emu-alg>
+              1. Let _requestedModules_ be the ModuleRequests of _body_.
+              1. Let _importEntries_ be ImportEntries of _body_.
+              1. Let _importedBoundNames_ be ImportedLocalNames(_importEntries_).
+              1. Let _indirectExportEntries_ be a new empty List.
+              1. Let _localExportEntries_ be a new empty List.
+              1. Let _starExportEntries_ be a new empty List.
+              1. Let _exportEntries_ be ExportEntries of _body_.
+              1. For each ExportEntry Record _ee_ of _exportEntries_, do
+                1. If _ee_.[[ModuleRequest]] is *null*, then
+                  1. If _ee_.[[LocalName]] is not an element of _importedBoundNames_, then
                     1. Append _ee_ to _localExportEntries_.
                   1. Else,
-                    1. NOTE: This is a re-export of a single name.
-                    1. Append the ExportEntry Record { [[ModuleRequest]]: _ie_.[[ModuleRequest]], [[ImportName]]: _ie_.[[ImportName]], [[LocalName]]: *null*, [[ExportName]]: _ee_.[[ExportName]] } to _indirectExportEntries_.
-              1. Else if _ee_.[[ImportName]] is ~all-but-default~, then
-                1. Assert: _ee_.[[ExportName]] is *null*.
-                1. Append _ee_ to _starExportEntries_.
-              1. Else,
-                1. Append _ee_ to _indirectExportEntries_.
-            1. Let _async_ be _body_ Contains `await`.
-            1. <ins>Let _visibleModuleDeclarations_ be a new empty List.</ins>
-            1. <ins>Let _rawModuleDeclarations_ be the RawModuleDeclarations of _body_.</ins>
-            1. <ins>For each Record _rawDecl_ of _rawModuleDeclarations_, do</ins>
-              1. <ins>Append the Record { [[Name]]: _rawDecl_.[[Name]], [[Module]]: ~empty~ } to _visibleModuleDeclarations_.</ins>
-              1. <ins>NOTE: The [[Module]] field of this Record will be set to a Module Record before the end of this ParseModule operation. The ~empty~ value is never observable outside of ParseModule.</ins>
-            1. <ins>If _outerModuleDeclarations_ is present, then</ins>
-              1. <ins>Let _localDeclaredNames_ be the list-concatenation of the VarDeclaredNames of _body_ and the LexicallyDeclaredNames of _body_.</ins>
-              1. <ins>For each Record _m_ of _outerModuleDeclarations_, do</ins>
-                1. <ins>If _m_.[[Name]] is not an element of _localDeclaredNames_ and _visibleModuleDeclarations_ does not contain a Record with [[Name]] equal to _m_.[[Name]], then</ins>
-                  1. <ins>Append _m_ to _visibleModuleDeclarations_.</ins>
-              1. <ins>TODO: Instead of copying all of them, we could just add the declarations that are imported inside this module. This would simplify structured cloning, since we wouldn't need to clone all the visible modules.</ins>
-            1. <ins>For each Record _rawDecl_ of _rawModuleDeclarations_, do</ins>
-              1. <ins>Let _rec_ be the Record in _visibleModuleDeclarations_ with [[Name]] equal to _rawDecl_.[[Name]].</ins>
-              1. <ins>Assert: _rec_ exists and is unique.</ins>
-              1. <ins>Let _moduleRecord_ be ParseModule(_rawDecl_.[[Body]], _realm_, _hostDefined_, _visibleModuleDeclarations_).</ins>
-              1. <ins>Assert: _moduleRecord_ is a Module Record, because parsing errors would have been reported while parsing the outer module.</ins>
-              1. <ins>Set _rec_.[[Module]] to _moduleRecord_.</ins>
-            1. Return Source Text Module Record { [[Realm]]: _realm_, [[Environment]]: ~empty~, [[Namespace]]: ~empty~, [[CycleRoot]]: ~empty~, [[HasTLA]]: _async_, [[AsyncEvaluation]]: *false*, [[TopLevelCapability]]: ~empty~, [[AsyncParentModules]]: &laquo; &raquo;, [[PendingAsyncDependencies]]: ~empty~, [[Status]]: ~new~, [[EvaluationError]]: ~empty~, [[HostDefined]]: _hostDefined_, [[ECMAScriptCode]]: _body_, [[Context]]: ~empty~, [[ImportMeta]]: ~empty~, [[RequestedModules]]: _requestedModules_, [[LoadedModules]]: a new empty List, <ins>[[VisibleModuleDeclarations]]: _visibleModuleDeclarations_,</ins> [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[DFSIndex]]: ~empty~, [[DFSAncestorIndex]]: ~empty~ }.
-          </emu-alg>
+                    1. Let _ie_ be the element of _importEntries_ whose [[LocalName]] is the same as _ee_.[[LocalName]].
+                    1. If _ie_.[[ImportName]] is ~namespace-object~, then
+                      1. NOTE: This is a re-export of an imported module namespace object.
+                      1. Append _ee_ to _localExportEntries_.
+                    1. Else,
+                      1. NOTE: This is a re-export of a single name.
+                      1. Append the ExportEntry Record { [[ModuleRequest]]: _ie_.[[ModuleRequest]], [[ImportName]]: _ie_.[[ImportName]], [[LocalName]]: *null*, [[ExportName]]: _ee_.[[ExportName]] } to _indirectExportEntries_.
+                1. Else if _ee_.[[ImportName]] is ~all-but-default~, then
+                  1. Assert: _ee_.[[ExportName]] is *null*.
+                  1. Append _ee_ to _starExportEntries_.
+                1. Else,
+                  1. Append _ee_ to _indirectExportEntries_.
+              1. Let _async_ be _body_ Contains `await`.
+              1. <ins>Let _visibleModuleDeclarations_ be InstantiateModuleDeclarations(_body_, _realm_, _hostDefined_, _outerModuleDeclarations_).</ins>
+              1. <ins>Append each element of _outerModuleDeclarations_ to _visibleModuleDeclarations_.</ins>
+              1. Return Source Text Module Record { [[Realm]]: _realm_, [[Environment]]: ~empty~, [[Namespace]]: ~empty~, [[CycleRoot]]: ~empty~, [[HasTLA]]: _async_, [[AsyncEvaluation]]: *false*, [[TopLevelCapability]]: ~empty~, [[AsyncParentModules]]: &laquo; &raquo;, [[PendingAsyncDependencies]]: ~empty~, [[Status]]: ~new~, [[EvaluationError]]: ~empty~, [[HostDefined]]: _hostDefined_, [[ECMAScriptCode]]: _body_, [[Context]]: ~empty~, [[ImportMeta]]: ~empty~, [[RequestedModules]]: _requestedModules_, [[LoadedModules]]: a new empty List, <ins>[[VisibleModuleDeclarations]]: _visibleModuleDeclarations_,</ins> [[ImportEntries]]: _importEntries_, [[LocalExportEntries]]: _localExportEntries_, [[IndirectExportEntries]]: _indirectExportEntries_, [[StarExportEntries]]: _starExportEntries_, [[DFSIndex]]: ~empty~, [[DFSAncestorIndex]]: ~empty~ }.
+            </emu-alg>
+          </emu-clause>
+
+          <emu-clause id="sec-instantiatemoduledeclarations" type="abstract operation">
+            <h1>
+              <ins>
+                InstantiateModuleDeclarations (
+                  _node_: a Parse Node,
+                  _realm_: a Realm Record,
+                  _hostDefined_: anything,
+                  _outerModuleDeclarations_: a List of Records with fields [[Name]] (a String) and [[Module]] (a Module Record)
+                ): a List of Records with fields [[Name]] (a String) and [[Module]] (a Source Text Module Record)
+              </ins>
+            </h1>
+            <dl class="header">
+              <dt>description</dt>
+              <dd>It creates the Module Records corresponding to the |ModuleDeclaration|s directly contained within _node_.</dd>
+            </dl>
+            <emu-alg>
+              1. Let _localModuleDeclarations_ be a new empty List.
+              1. Let _visibleModuleDeclarations_ be a new empty List.
+              1. Let _topLevelModuleDeclarations_ be the TopLevelModuleDeclarations of _node_.
+              1. For each Parse Node _decl_ of _topLevelModuleDeclarations_, do
+                1. Let _name_ be the sole element of the BoundNames of _decl_.
+                1. Let _rec_ be the Record { [[Name]]: _name_, [[Module]]: ~empty~ }.
+                1. Append _rec_ to _visibleModuleDeclarations_.
+                1. Append _rec_ to _localModuleDeclarations_.
+                1. NOTE: The [[Module]] field of this Record will be set to a Module Record before the end of this ParseModule operation. The ~empty~ value is never observable outside of ParseModule.
+              1. If _outerModuleDeclarations_ is not empty, then
+                1. Let _localDeclaredNames_ be the list-concatenation of the VarDeclaredNames of _node_ and the LexicallyDeclaredNames of _node_.
+                1. For each Record _m_ of _outerModuleDeclarations_, do
+                  1. If _m_.[[Name]] is not an element of _localDeclaredNames_ and _visibleModuleDeclarations_ does not contain a Record with [[Name]] equal to _m_.[[Name]], then
+                    1. Append _m_ to _visibleModuleDeclarations_.
+                1. TODO: Instead of copying all of them, we could just add the declarations that are imported inside this module. This would simplify structured cloning, since we wouldn't need to clone all the visible modules.
+              1. For each Parse Node _decl_ of _topLevelModuleDeclarations_, do
+                1. Let _name_ be the sole element of the BoundNames of _decl_.
+                1. Let _rec_ be the Record in _localModuleDeclarations_ with [[Name]] equal to _name_.
+                1. Assert: _rec_ exists and is unique.
+                1. Let _moduleRecord_ be BuildSourceTextModuleRecord(_decl_'s |ModuleBody|, _realm_, _hostDefined_, _visibleModuleDeclarations_).
+                1. Set _rec_.[[Module]] to _moduleRecord_.
+              1. Return _localModuleDeclarations_.
+            </emu-alg>
+          </emu-clause>
         </emu-clause>
 
         <emu-clause id="sec-source-text-module-record-initialize-environment" type="concrete method" number="4">
@@ -2051,7 +2344,7 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
             1. Set the ScriptOrModule of _moduleContext_ to _module_.
             1. Set the VariableEnvironment of _moduleContext_ to _module_.[[Environment]].
             1. Set the LexicalEnvironment of _moduleContext_ to _module_.[[Environment]].
-            1. Set the PrivateEnvironment of _moduleContext_ to *null*.
+            1. Set the ModuleDeclarationsEnvironment of _moduleContext_ to *null*.
             1. Set _module_.[[Context]] to _moduleContext_.
             1. Push _moduleContext_ onto the execution context stack; _moduleContext_ is now the running execution context.
             1. Let _code_ be _module_.[[ECMAScriptCode]].
@@ -2074,9 +2367,11 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
                 1. If _d_ is a |FunctionDeclaration|, a |GeneratorDeclaration|, an |AsyncFunctionDeclaration|, or an |AsyncGeneratorDeclaration|, then
                   1. Let _fo_ be InstantiateFunctionObject of _d_ with arguments _env_ and _privateEnv_.
                   1. Perform ! _env_.InitializeBinding(_dn_, _fo_).
-                1. <ins>Else if _d_ is a |ModuleDeclaration|, then</ins>
-                  1. <ins>Let _mo_ be InstantiateModuleDeclaration of _d_.</ins>
-                  1. <ins>Perform ! _env_.InitializeBinding(_dn_, _mo_).</ins>
+            1. <ins>For each Record _m_ in _m_.[[VisibleModuleDeclarations]], do</ins>
+              1. <ins>TODO: _m_.[[VisibleModuleDeclarations]] doesn't contain module declarations imported from other files, but they should all be included.</ins>
+              1. <ins>Perform AddModuleDeclaration(_m_.[[Name]], _m.[[Module]], _env_).</ins>
+              1. <ins>Let _mo_ be GetModuleObject(_m_.[[Module]]).</ins>
+              1. <ins>Perform ! _env_.InitializeBinding(_m_.[[Name]], _mo_).</ins>
             1. Remove _moduleContext_ from the execution context stack.
             1. Return ~unused~.
           </emu-alg>
