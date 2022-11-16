@@ -1,6 +1,6 @@
 # JavaScript Module Declarations
 
-Champions: Daniel Ehrenberg, Nicolò Ribaudo
+Champions: Daniel Ehrenberg ([Bloomberg](https://techatbloomberg.com/)), Nicolò Ribaudo (Igalia, in parternship with [eyeo](https://eyeo.com/) and [Bloomberg](https://techatbloomberg.com/))
 
 Stage 1
 
