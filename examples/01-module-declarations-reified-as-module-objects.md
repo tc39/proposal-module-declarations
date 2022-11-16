@@ -2,17 +2,17 @@
 
 $$ {\text{module declarations} \over \text{module expressions}} = {\text{function declarations} \over \text{function expressions}} $$
 
-Except for the "they are static declaration parts", module declarations behave exactly like module expressions assigned to a `const` variable, except that they are hoisted similarly to strict-mode function declarations.
+Except for the "they are static declaration parts", module declarations behave exactly like module expressions assigned to a `const` variable.
 
 These two snippets are equivalent:
 
 ```js
-mod instanceof Module; // true
-await import(mod);
-
 module mod {
     export let y = 1;
 }
+
+mod instanceof Module; // true
+await import(mod);
 ```
 ```js
 const mod = module {
