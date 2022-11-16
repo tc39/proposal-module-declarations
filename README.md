@@ -141,9 +141,13 @@ Module declarations lift this restriction: they can be imported statically if th
 
 We are developing these two features as separate proposals because module declarations present additional complexity around static import statements that module expressions don't need, and module expressions have their own [motivations](https://github.com/tc39/proposal-module-expressions#problem-space) independent from module declarations. Module declarations inherit different design decisions from module expressions, so the advancement of this proposal in its current shape depends on the evolution of module expressions.
 
+<!--
+
 ### Does this proposal work with import maps?
 
 [Import maps](https://github.com/WICG/import-maps) can be used in conjunction with module declarations, in that the import map can redirect bare specifiers to be found in module declarations, rather than independent fetches. Mechanically: The lookup in the import map (which is done as part of "resolving a module specifier") precedes the interpretation of declarations in the module specifier (which are treated as part of the module map key). (TODO: add example of use together.)
+
+-->
 
 ## Next steps
 
