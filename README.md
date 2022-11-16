@@ -4,7 +4,7 @@ Champions: Daniel Ehrenberg ([Bloomberg](https://techatbloomberg.com/)), Nicolò
 
 Stage 1
 
-JavaScript module declarations are a syntax for named, inline JS modules, which can be used for bundling multiple modules into a single JavaScript file.
+JavaScript module declarations (previously known as "module fragments") are a syntax for named, inline JS modules, which can be used for bundling multiple modules into a single JavaScript file.
 
 ## Motivation
 
