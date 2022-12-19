@@ -18,7 +18,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
       ModuleExpression :
         `module` [no LineTerminator here] `{` ModuleBody? `}`
     </emu-grammar>
-    <p>That proposal is a diff on top of <a href="https://github.com/tc39/ecma262/pull/2905">tc39/ecma262#2905</a>.</p>
   </emu-note>
 
   <h2>Syntax</h2>
@@ -2325,14 +2324,14 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
               1. Let _importedModule_ be GetImportedModule(_module_, _in_.[[ModuleSpecifier]]).
               1. Assert: _importedModule_ is not ~empty~, because imported module requests are a subset of _module_.[[RequestedModules]], and these have been resolved earlier in this algorithm.
               1. If _in_.[[ImportName]] is ~namespace-object~, then
-                1. Let _namespace_ be ? GetModuleNamespace(_importedModule_).
+                1. Let _namespace_ be GetModuleNamespace(_importedModule_).
                 1. Perform ! _env_.CreateImmutableBinding(_in_.[[LocalName]], *true*).
                 1. Perform ! _env_.InitializeBinding(_in_.[[LocalName]], _namespace_).
               1. Else,
                 1. Let _resolution_ be ? _importedModule_.ResolveExport(_in_.[[ImportName]]).
                 1. If _resolution_ is *null* or ~ambiguous~, throw a *SyntaxError* exception.
                 1. If _resolution_.[[BindingName]] is ~namespace~, then
-                  1. Let _namespace_ be ? GetModuleNamespace(_resolution_.[[Module]]).
+                  1. Let _namespace_ be GetModuleNamespace(_resolution_.[[Module]]).
                   1. Perform ! _env_.CreateImmutableBinding(_in_.[[LocalName]], *true*).
                   1. Perform ! _env_.InitializeBinding(_in_.[[LocalName]], _namespace_).
                 1. Else,
