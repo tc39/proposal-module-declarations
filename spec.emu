@@ -2498,48 +2498,11 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
           `export` NamedExports `;`
           `export` VariableStatement[~Yield, +Await]
           `export` Declaration[~Yield, +Await]
-          <ins>`export` ModuleDeclaration[~Default]</ins>
           `export` `default` HoistableDeclaration[~Yield, +Await, +Default]
           `export` `default` ClassDeclaration[~Yield, +Await, +Default]
           <ins>`export` `default` ModuleDeclaration[+Default]</ins>
           `export` `default` [lookahead &notin; { `function`, `async` [no LineTerminator here] `function`, `class`, <ins>`module` [no LineTerminator here] `{`</ins> }] AssignmentExpression[+In, ~Yield, +Await] `;`
       </emu-grammar>
-
-      <emu-note type="editor">
-        TODO: Consider <code>export default</code> |ModuleDeclaration|.
-      </emu-note>
-
-      <emu-clause id="sec-static-semantics-exportedbindings" type="sdo" number="2">
-        <h1>Static Semantics: ExportedBindings ( ): a List of Strings</h1>
-        <dl class="header">
-        </dl>
-        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
-        <emu-alg>
-          1. <ins>Return the BoundNames of |ModuleDeclaration|.</ins>
-        </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-static-semantics-exportednames" type="sdo">
-        <h1>Static Semantics: ExportedNames ( ): a List of Strings</h1>
-        <dl class="header">
-        </dl>
-        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
-        <emu-alg>
-          1. <ins>Return the BoundNames of |ModuleDeclaration|.</ins>
-        </emu-alg>
-      </emu-clause>
-
-      <emu-clause id="sec-static-semantics-exportentries" oldids="sec-module-semantics-static-semantics-exportentries,sec-exports-static-semantics-exportentries" type="sdo">
-        <h1>Static Semantics: ExportEntries ( ): a List of ExportEntry Records</h1>
-        <dl class="header">
-        </dl>
-        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
-        <emu-alg>
-          1. <ins>Let _names_ be BoundNames of |ModuleDeclaration|.</ins>
-          1. <ins>Let _localName_ be the sole element of _names_.</ins>
-          1. <ins>Return a List whose sole element is the ExportEntry Record { [[ModuleRequest]]: *null*, [[ImportName]]: *null*, [[LocalName]]: _localName_, [[ExportName]]: _localName_ }.</ins>
-        </emu-alg>
-      </emu-clause>
 
       <emu-clause id="sec-static-semantics-exportentriesformodule" type="sdo">
         <h1>
@@ -2549,14 +2512,6 @@ contributors: Daniel Ehrenberg, Nicolò Ribaudo
         </h1>
         <dl class="header">
         </dl>
-      </emu-clause>
-
-      <emu-clause id="sec-exports-runtime-semantics-evaluation" type="sdo" number="7">
-        <h1>Runtime Semantics: Evaluation</h1>
-        <emu-grammar><ins>ExportDeclaration : `export` ModuleDeclaration</ins></emu-grammar>
-        <emu-alg>
-          1. <ins>Return ? Evaluation of |ModuleDeclaration|.</ins>
-        </emu-alg>
       </emu-clause>
     </emu-clause>
   </emu-clause>
