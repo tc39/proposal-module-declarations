@@ -1,10 +1,15 @@
 # JavaScript Module Declarations
 
-Champions: Daniel Ehrenberg ([Bloomberg](https://techatbloomberg.com/)), Nicolò Ribaudo (Igalia, in parternship with [eyeo](https://eyeo.com/) and [Bloomberg](https://techatbloomberg.com/))
-
-Stage 1
-
 JavaScript module declarations (previously known as "module fragments") are a syntax for named, inline JS modules, which can be used for bundling multiple modules into a single JavaScript file.
+
+## Status
+
+Stage: 2
+
+Champions:
+
+- [Daniel Ehrenberg](https://github.com/littledan) ([Bloomberg](https://techatbloomberg.com/))
+- [Nicolò Ribaudo](https://github.com/nicolo-ribaudo) (Igalia, in parternship with [eyeo](https://eyeo.com/) and [Bloomberg](https://techatbloomberg.com/))
 
 ## Motivation
 
